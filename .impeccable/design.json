@@ -1,0 +1,174 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-17T21:57:02.3451223-04:00",
+  "title": "Design System: Local 947 Special Separation Calculator",
+  "extensions": {
+    "colorMeta": {
+      "command-navy": {
+        "role": "primary",
+        "displayName": "Command Navy",
+        "canonical": "oklch(0.22 0.05 275)",
+        "tonalRamp": ["oklch(0.15 0.05 275)", "oklch(0.25 0.05 275)", "oklch(0.35 0.05 275)", "oklch(0.45 0.05 275)", "oklch(0.60 0.05 275)", "oklch(0.72 0.05 275)", "oklch(0.84 0.05 275)", "oklch(0.95 0.05 275)"]
+      },
+      "command-navy-hover": {
+        "role": "primary",
+        "displayName": "Command Navy Hover",
+        "canonical": "oklch(0.28 0.06 275)",
+        "tonalRamp": ["oklch(0.15 0.06 275)", "oklch(0.25 0.06 275)", "oklch(0.35 0.06 275)", "oklch(0.45 0.06 275)", "oklch(0.60 0.06 275)", "oklch(0.72 0.06 275)", "oklch(0.84 0.06 275)", "oklch(0.95 0.06 275)"]
+      },
+      "local-947-gold": {
+        "role": "secondary",
+        "displayName": "Local 947 Gold",
+        "canonical": "oklch(0.82 0.16 78)",
+        "tonalRamp": ["oklch(0.15 0.16 78)", "oklch(0.25 0.16 78)", "oklch(0.35 0.16 78)", "oklch(0.45 0.16 78)", "oklch(0.60 0.16 78)", "oklch(0.72 0.16 78)", "oklch(0.84 0.16 78)", "oklch(0.95 0.16 78)"]
+      },
+      "focus-gold": {
+        "role": "secondary",
+        "displayName": "Focus Gold",
+        "canonical": "oklch(0.66 0.17 78)",
+        "tonalRamp": ["oklch(0.15 0.17 78)", "oklch(0.25 0.17 78)", "oklch(0.35 0.17 78)", "oklch(0.45 0.17 78)", "oklch(0.60 0.17 78)", "oklch(0.72 0.17 78)", "oklch(0.84 0.17 78)", "oklch(0.95 0.17 78)"]
+      },
+      "service-red": {
+        "role": "tertiary",
+        "displayName": "Service Red",
+        "canonical": "oklch(0.43 0.18 25)",
+        "tonalRamp": ["oklch(0.15 0.18 25)", "oklch(0.25 0.18 25)", "oklch(0.35 0.18 25)", "oklch(0.45 0.18 25)", "oklch(0.60 0.18 25)", "oklch(0.72 0.18 25)", "oklch(0.84 0.18 25)", "oklch(0.95 0.18 25)"]
+      },
+      "service-red-soft": {
+        "role": "tertiary",
+        "displayName": "Soft Service Red",
+        "canonical": "oklch(0.96 0.025 25)",
+        "tonalRamp": ["oklch(0.15 0.025 25)", "oklch(0.25 0.025 25)", "oklch(0.35 0.025 25)", "oklch(0.45 0.025 25)", "oklch(0.60 0.025 25)", "oklch(0.72 0.025 25)", "oklch(0.84 0.025 25)", "oklch(0.95 0.025 25)"]
+      },
+      "working-white": {
+        "role": "neutral",
+        "displayName": "Working White",
+        "canonical": "oklch(1 0 0)",
+        "tonalRamp": ["oklch(0.15 0 0)", "oklch(0.25 0 0)", "oklch(0.35 0 0)", "oklch(0.45 0 0)", "oklch(0.60 0 0)", "oklch(0.72 0 0)", "oklch(0.84 0 0)", "oklch(0.95 0 0)"]
+      },
+      "badge-ink": {
+        "role": "neutral",
+        "displayName": "Badge Ink",
+        "canonical": "oklch(0.12 0.01 275)",
+        "tonalRamp": ["oklch(0.15 0.01 275)", "oklch(0.25 0.01 275)", "oklch(0.35 0.01 275)", "oklch(0.45 0.01 275)", "oklch(0.60 0.01 275)", "oklch(0.72 0.01 275)", "oklch(0.84 0.01 275)", "oklch(0.95 0.01 275)"]
+      },
+      "muted-ink": {
+        "role": "neutral",
+        "displayName": "Muted Ink",
+        "canonical": "oklch(0.42 0.02 275)",
+        "tonalRamp": ["oklch(0.15 0.02 275)", "oklch(0.25 0.02 275)", "oklch(0.35 0.02 275)", "oklch(0.45 0.02 275)", "oklch(0.60 0.02 275)", "oklch(0.72 0.02 275)", "oklch(0.84 0.02 275)", "oklch(0.95 0.02 275)"]
+      },
+      "cool-surface": {
+        "role": "neutral",
+        "displayName": "Cool Surface",
+        "canonical": "oklch(0.97 0.006 275)",
+        "tonalRamp": ["oklch(0.15 0.006 275)", "oklch(0.25 0.006 275)", "oklch(0.35 0.006 275)", "oklch(0.45 0.006 275)", "oklch(0.60 0.006 275)", "oklch(0.72 0.006 275)", "oklch(0.84 0.006 275)", "oklch(0.95 0.006 275)"]
+      },
+      "cool-border": {
+        "role": "neutral",
+        "displayName": "Cool Border",
+        "canonical": "oklch(0.82 0.015 275)",
+        "tonalRamp": ["oklch(0.15 0.015 275)", "oklch(0.25 0.015 275)", "oklch(0.35 0.015 275)", "oklch(0.45 0.015 275)", "oklch(0.60 0.015 275)", "oklch(0.72 0.015 275)", "oklch(0.84 0.015 275)", "oklch(0.95 0.015 275)"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "The calculator page title only." },
+      "headline": { "displayName": "Headline", "purpose": "Section and eligibility-result headings." },
+      "title": { "displayName": "Title", "purpose": "Question legends and derived-value labels." },
+      "body": { "displayName": "Body", "purpose": "Instructions, explanations, and disclosures." },
+      "label": { "displayName": "Label", "purpose": "Fields, choices, buttons, and compact status text." }
+    },
+    "motion": [
+      { "name": "state-standard", "value": "180ms ease-out", "purpose": "Button color feedback only." },
+      { "name": "reduced-motion", "value": "0.01ms", "purpose": "Effectively instant state changes when reduced motion is requested." }
+    ],
+    "breakpoints": [
+      { "name": "mobile-stack", "value": "640px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The full-width action that submits the complete estimate.",
+      "html": "<button class=\"ds-btn-primary\">Check eligibility and calculate</button>",
+      "css": ".ds-btn-primary { width: 100%; min-block-size: 44px; padding: 0.75rem 1.1rem; color: var(--white); background: var(--navy); border: 2px solid var(--navy); border-radius: var(--radius-sm); font: 700 1rem/1.5 'Segoe UI', system-ui, sans-serif; cursor: pointer; transition: background-color 180ms ease-out, color 180ms ease-out; } .ds-btn-primary:hover { background: var(--navy-hover); } .ds-btn-primary:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "A bordered action for reset and lower-emphasis commands.",
+      "html": "<button class=\"ds-btn-secondary\">Start over</button>",
+      "css": ".ds-btn-secondary { min-block-size: 44px; padding: 0.75rem 1.1rem; color: var(--navy); background: var(--white); border: 2px solid var(--navy); border-radius: var(--radius-sm); font: 700 1rem/1.5 'Segoe UI', system-ui, sans-serif; cursor: pointer; transition: background-color 180ms ease-out, color 180ms ease-out; } .ds-btn-secondary:hover { color: var(--white); background: var(--navy); } .ds-btn-secondary:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "A full-width native field for service, date, sick-hour, and salary values.",
+      "html": "<label class=\"ds-field-label\" for=\"ds-field\">Estimated retirement year</label><input class=\"ds-field\" id=\"ds-field\" type=\"number\" value=\"2030\">",
+      "css": ".ds-field-label { display: block; margin-block-end: 0.5rem; color: var(--ink); font: 650 1rem/1.5 'Segoe UI', system-ui, sans-serif; } .ds-field { box-sizing: border-box; width: 100%; min-block-size: 44px; padding: 0.65rem 0.75rem; color: var(--ink); background: var(--white); border: 1px solid var(--muted); border-radius: var(--radius-sm); font: 400 1rem/1.5 'Segoe UI', system-ui, sans-serif; } .ds-field:hover { border-color: var(--navy); } .ds-field:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; } .ds-field[aria-invalid=\"true\"] { border-color: var(--red); }"
+    },
+    {
+      "name": "Selected Choice",
+      "kind": "custom",
+      "refersTo": "choice-selected",
+      "description": "A visible native radio inside a gold full-row selection target.",
+      "html": "<label class=\"ds-choice\"><input type=\"radio\" checked> Use calculated retirement service</label>",
+      "css": ".ds-choice { display: flex; align-items: center; gap: 0.75rem; min-block-size: 44px; padding: 0.75rem 1rem; color: var(--ink); background: var(--gold); border: 1px solid var(--ink); border-radius: var(--radius-sm); font: 650 1rem/1.5 'Segoe UI', system-ui, sans-serif; cursor: pointer; } .ds-choice input { width: 1.2rem; min-block-size: 1.2rem; accent-color: var(--navy); } .ds-choice:focus-within { outline: 3px solid var(--focus); outline-offset: 3px; }"
+    },
+    {
+      "name": "Eligible Result",
+      "kind": "card",
+      "refersTo": "result-eligible",
+      "description": "A bordered, cool-toned outcome with explicit checks and a prominent benefit amount.",
+      "html": "<section class=\"ds-result-eligible\"><h2>You appear eligible</h2><p class=\"ds-status\"><span aria-hidden=\"true\">✓</span> Under age 62 on the January 31 retirement date</p><dl><div><dt>Estimated annual benefit</dt><dd>$25,961.10</dd></div></dl></section>",
+      "css": ".ds-result-eligible { padding: 1.5rem; color: var(--ink); background: var(--surface); border: 2px solid var(--navy); border-radius: var(--radius-md); font: 400 1rem/1.5 'Segoe UI', system-ui, sans-serif; } .ds-result-eligible h2 { margin: 0 0 1rem; color: var(--navy); font-size: 1.4rem; line-height: 1.25; } .ds-status { display: flex; gap: 0.75rem; align-items: flex-start; } .ds-status span { display: inline-grid; flex: 0 0 1.5rem; width: 1.5rem; height: 1.5rem; place-items: center; color: var(--white); background: var(--navy); border-radius: 50%; font-weight: 800; } .ds-result-eligible dl { margin: 1.5rem 0 0; } .ds-result-eligible dl div { display: flex; justify-content: space-between; gap: 1rem; padding: 0.75rem 1rem; } .ds-result-eligible dt, .ds-result-eligible dd { font-weight: 700; } .ds-result-eligible dd { margin: 0; font-variant-numeric: tabular-nums; } .ds-result-eligible:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }"
+    },
+    {
+      "name": "Ineligible Result",
+      "kind": "card",
+      "refersTo": "result-ineligible",
+      "description": "A complete red outcome boundary that explains failures and omits payment values.",
+      "html": "<section class=\"ds-result-ineligible\"><h2>You do not appear eligible</h2><p class=\"ds-status-fail\"><span aria-hidden=\"true\">×</span> Regular LGERS service retirement is required</p></section>",
+      "css": ".ds-result-ineligible { padding: 1.5rem; color: var(--red); background: var(--red-soft); border: 2px solid var(--red); border-radius: var(--radius-md); font: 400 1rem/1.5 'Segoe UI', system-ui, sans-serif; } .ds-result-ineligible h2 { margin: 0 0 1rem; color: var(--red); font-size: 1.4rem; line-height: 1.25; } .ds-status-fail { display: flex; gap: 0.75rem; align-items: flex-start; } .ds-status-fail span { display: inline-grid; flex: 0 0 1.5rem; width: 1.5rem; height: 1.5rem; place-items: center; color: var(--white); background: var(--red); border-radius: 50%; font-weight: 800; } .ds-result-ineligible:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Union Desk",
+    "overview": "The Union Desk feels like a well-prepared benefit worksheet on a clean union-hall desk: authoritative, familiar, and ready for a firefighter to use without assistance. The Local 947 badge and established palette frame the task with institutional pride while the calculator remains the center of attention.\n\nThe system is flat, direct, and deliberately calm. Plain-language questions, open sections, native controls, and explained results make a complicated benefit rule feel manageable. It rejects dense government or pension forms, commercial insurance or financial-sales pages, gimmicky firehouse styling, and TurboTax-style upsell screens.",
+    "keyCharacteristics": [
+      "Calculator-first structure with integrated Local 947 identity",
+      "Plain-language guidance and visibly explained eligibility",
+      "Strong contrast, generous touch targets, and color-blind-safe status cues",
+      "Familiar controls with restrained, functional motion",
+      "Professional rather than ceremonial typography"
+    ],
+    "rules": [
+      { "name": "The Assigned Palette Rule", "body": "White is the working surface, navy drives actions, gold identifies and selects, red signals failure or urgency, and near-black carries text. Never swap these roles for decoration.", "section": "colors" },
+      { "name": "The No Color-Only Rule", "body": "Every success, failure, warning, and selection must also use text, shape, or an icon. Color is always supplementary.", "section": "colors" },
+      { "name": "The One-Family Rule", "body": "Never introduce a decorative display face into calculator headings, labels, buttons, or results.", "section": "typography" },
+      { "name": "The Full-Size Label Rule", "body": "Labels never shrink into captions; benefit decisions must remain legible under stress and on mobile screens.", "section": "typography" },
+      { "name": "The Flat-by-Default Rule", "body": "Every surface stays in the document plane. Use a tonal shift or complete border when grouping is necessary; never add decorative drop shadows.", "section": "elevation" },
+      { "name": "The State-Only Motion Rule", "body": "The only motion is a fast 180ms color transition on buttons. Reduced-motion preferences collapse transitions to effectively instant feedback.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do place the calculator task ahead of all supporting explanation.",
+      "Do use the Local 947 badge as the primary identity asset and keep its surrounding space clear.",
+      "Do use familiar native controls, visible focus states, 44px minimum touch targets, and plain-language errors.",
+      "Do pair eligibility colors with explicit text and recognizable status icons.",
+      "Do preserve the assigned roles of navy, gold, red, white, and near-black.",
+      "Do keep the layout readable from 320px upward and stack choices and values at the 640px breakpoint."
+    ],
+    "donts": [
+      "Don't resemble a dense government or pension form.",
+      "Don't resemble a commercial insurance or financial-sales page.",
+      "Don't use gimmicky firehouse styling, including flames, sirens, distressed typography, or excessive red.",
+      "Don't imitate TurboTax-style upsell screens or introduce sales-oriented interruptions and unnecessary choices.",
+      "Don't use decorative motion, glassmorphism, gradient text, nested cards, drop shadows, or oversized rounded containers.",
+      "Don't communicate eligibility, errors, or selection by color alone."
+    ]
+  }
+}

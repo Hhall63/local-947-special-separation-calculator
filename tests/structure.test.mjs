@@ -74,3 +74,17 @@ test("styles include focus, responsive, and reduced-motion safeguards", async ()
 test("the copied Local 947 logo exists", async () => {
   await access(new URL("assets/local-947-logo.png", rootUrl));
 });
+
+test("README documents test, preview, privacy, and maintenance", async () => {
+  const readme = await readFile(new URL("README.md", rootUrl), "utf8");
+
+  for (const fragment of [
+    "node --test",
+    "http.server 8080",
+    "No entered data is stored or transmitted",
+    "RANK_SALARIES",
+    "BENEFIT_MULTIPLIER",
+  ]) {
+    assert.ok(readme.includes(fragment), "Missing README detail: " + fragment);
+  }
+});
