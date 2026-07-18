@@ -126,6 +126,13 @@ h2 {
   line-height: 1.25;
 }
 
+.form-subheading {
+  margin: var(--space-5) 0 var(--space-3);
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
 .header-copy {
   margin: var(--space-2) 0 0;
   max-width: 68ch;
@@ -250,6 +257,23 @@ select:hover {
   color: var(--muted);
 }
 
+.privacy-note {
+  color: var(--muted);
+  font-weight: 650;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
 .derived-values,
 .benefit-totals,
 .calculation-breakdown {
@@ -326,15 +350,13 @@ dd {
   border-radius: var(--radius-md);
 }
 
-.error-summary,
-.result--ineligible {
+.error-summary {
   color: var(--red);
   background: var(--red-soft);
   border: 2px solid var(--red);
 }
 
-.error-summary h2,
-.result--ineligible h2 {
+.error-summary h2 {
   color: var(--red);
 }
 
@@ -354,6 +376,21 @@ dd {
   border: 2px solid var(--navy);
 }
 
+.result--ineligible {
+  color: var(--ink);
+  background: var(--red-soft);
+  border: 2px solid var(--red);
+}
+
+.result--ineligible h2,
+.result--ineligible .status--fail {
+  color: var(--red);
+}
+
+.result--ineligible .status--pass {
+  color: var(--ink);
+}
+
 .result-checks {
   padding: 0;
   list-style: none;
@@ -364,6 +401,19 @@ dd {
   gap: var(--space-2);
   align-items: flex-start;
   margin-block: var(--space-2);
+}
+
+.status-copy {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.status-evidence {
+  color: var(--muted);
+}
+
+.result--ineligible .status-evidence {
+  color: var(--ink);
 }
 
 .status-icon {
@@ -391,9 +441,29 @@ dd {
   font-weight: 750;
 }
 
+.allowance-primary {
+  color: var(--navy);
+  border-block: 2px solid var(--navy);
+}
+
+.allowance-primary dd {
+  font-size: 1.4rem;
+}
+
+.allowance-coverage {
+  max-width: 70ch;
+  color: var(--muted);
+}
+
 .disclaimer {
   max-width: 70ch;
   font-weight: 600;
+}
+
+.result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
 }
 
 .assumptions {
@@ -406,6 +476,15 @@ dd {
   align-items: center;
   cursor: pointer;
   font-weight: 700;
+}
+
+.assumptions summary::before {
+  content: "▸";
+  margin-inline-end: var(--space-1);
+}
+
+.assumptions[open] summary::before {
+  content: "▾";
 }
 
 [hidden] {

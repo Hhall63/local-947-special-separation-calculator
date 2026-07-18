@@ -72,18 +72,17 @@ test("browser controller supports independent service and salary previews", asyn
   }
 });
 
-test("uses approved creditable-years copy and defaults", async () => {
+test("uses approved creditable-service copy and defaults", async () => {
   const html = await readFile(new URL("index.html", rootUrl), "utf8");
   const normalizedHtml = html.replace(/\s+/g, " ");
 
   for (const fragment of [
-    "Creditable years of service",
-    "Projected GFD service + other LGERS service + sick-leave service credit = creditable years of service",
-    "Which creditable years of service should the SSA equation use?",
-    "Use calculated creditable years of service",
-    "Enter separate creditable years of service",
-    "Creditable years of service used",
-    "This value changes the SSA equation only, not eligibility.",
+    "Creditable service used for the allowance",
+    "Projected GFD service + other LGERS service + sick-leave service credit = creditable service.",
+    "Which creditable service should the allowance calculation use?",
+    "Use calculated creditable service",
+    "Enter separate creditable service",
+    "This value changes the allowance calculation only, not eligibility.",
   ]) {
     assert.ok(
       normalizedHtml.includes(fragment),
@@ -97,7 +96,7 @@ test("uses approved creditable-years copy and defaults", async () => {
   assert.match(html, /id="benefit-months"[\s\S]{0,180}value="0"/);
   assert.match(
     html,
-    /<button class="primary-button" type="submit">\s*Submit\s*<\/button>/,
+    /<button id="calculate-button" class="primary-button" type="submit">\s*Calculate my allowance estimate\s*<\/button>/,
   );
 });
 
@@ -128,6 +127,11 @@ test("styles include focus, responsive, and reduced-motion safeguards", async ()
     "@media (max-width: 640px)",
     "@media (prefers-reduced-motion: reduce)",
     "oklch(",
+    ".form-subheading",
+    ".visually-hidden",
+    ".allowance-primary",
+    ".result--ineligible .status--pass",
+    ".assumptions summary::before",
   ]) {
     assert.ok(css.includes(fragment), "Missing CSS safeguard: " + fragment);
   }
@@ -135,6 +139,58 @@ test("styles include focus, responsive, and reduced-motion safeguards", async ()
 
 test("the copied Local 947 logo exists", async () => {
   await access(new URL("assets/local-947-logo.png", rootUrl));
+});
+
+test("uses allowance copy, official guidance, and the approved result order", async () => {
+  const html = await readFile(new URL("index.html", rootUrl), "utf8");
+  const normalized = html.replace(/\s+/g, " ");
+
+  for (const fragment of [
+    "Local Governmental Employees’ Retirement System (LGERS)",
+    "Calculate my allowance estimate",
+    "Estimated gross biweekly allowance",
+    "Estimated annual allowance",
+    "Estimated total allowance",
+    "Reloading this page clears your entries",
+    "official LGERS Member Handbook (opens in a new tab)",
+    'id="benefit-service-section"',
+    'id="salary-section"',
+    'id="calculate-button"',
+    'id="edit-answers"',
+    'id="preview-status"',
+  ]) {
+    assert.ok(normalized.includes(fragment), "Missing interface copy: " + fragment);
+  }
+
+  assert.ok(
+    html.indexOf("Estimated gross biweekly allowance") <
+      html.indexOf("Estimated annual allowance"),
+  );
+  assert.ok(
+    html.indexOf("Estimated annual allowance") <
+      html.indexOf("Estimated total allowance"),
+  );
+  assert.match(
+    html,
+    /href="https:\/\/www\.myncretirement\.com\/documents\/files\/actives\/lgers-handbook\/open"[^>]*target="_blank"[^>]*rel="noopener"/,
+  );
+  assert.doesNotMatch(
+    normalized,
+    />[^<]*\bbenefit(s)?\b[^<]*</i,
+    "Visible interface copy must use allowance",
+  );
+});
+
+test("uses one preview status region and accessible result focus", async () => {
+  const html = await readFile(new URL("index.html", rootUrl), "utf8");
+
+  assert.doesNotMatch(html, /<dl[^>]*aria-live=/);
+  assert.match(
+    html,
+    /id="preview-status"[^>]*aria-live="polite"[^>]*aria-atomic="true"/,
+  );
+  assert.match(html, /<h2 id="result-title" tabindex="-1"><\/h2>/);
+  assert.doesNotMatch(html, /id="result"[^>]*aria-live=/);
 });
 
 test("README documents test, preview, privacy, and maintenance", async () => {

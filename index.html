@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Estimate Local 947 Special Separation Allowance eligibility and benefit amounts."
+      content="Estimate Local 947 Special Separation Allowance eligibility and allowance amounts."
     />
     <title>Local 947 Special Separation Calculator</title>
     <link rel="stylesheet" href="styles.css" />
@@ -34,8 +34,32 @@
     <main id="calculator" class="page-shell">
       <section aria-labelledby="requirements-title">
         <h2 id="requirements-title">Before you begin</h2>
-        <p>You must meet every requirement to receive an estimate:</p>
+        <p>
+          The Special Separation Allowance requires every condition below. You
+          can still use the calculator to see which conditions pass and which
+          do not.
+        </p>
+        <p>
+          Have your retirement year, birth month and year, current GFD and other
+          service, sick hours, and salary or rank information ready.
+        </p>
+        <p class="privacy-note">
+          Reloading this page clears your entries because nothing is stored.
+        </p>
+        <p>
+          Review definitions and retirement rules in the
+          <a
+            href="https://www.myncretirement.com/documents/files/actives/lgers-handbook/open"
+            target="_blank"
+            rel="noopener"
+          >official LGERS Member Handbook (opens in a new tab)</a>.
+        </p>
         <ul class="requirements">
+          <li>
+            Retire under the Local Governmental Employees’ Retirement System
+            (LGERS) on a regular, unreduced service retirement—not an early
+            reduced or disability retirement.
+          </li>
           <li>Be under age 62 on your January 31 retirement date.</li>
           <li>
             Complete at least five continuous years as a sworn Greensboro
@@ -44,10 +68,6 @@
           <li>
             Have at least 50% of total creditable service as sworn Greensboro
             firefighter service.
-          </li>
-          <li>
-            Retire on a regular, unreduced LGERS service retirement, not an
-            early reduced or disability retirement.
           </li>
         </ul>
       </section>
@@ -61,6 +81,7 @@
         <section class="form-section" aria-labelledby="retirement-title">
           <h2 id="retirement-title">Retirement and service</h2>
 
+          <h3 class="form-subheading">Retirement date and age</h3>
           <div class="field">
             <label for="retirement-year">Estimated retirement year</label>
             <input id="retirement-year" type="number" inputmode="numeric" />
@@ -95,6 +116,7 @@
             </div>
           </fieldset>
 
+          <h3 class="form-subheading">Eligibility questions</h3>
           <fieldset id="regular-retirement-group">
             <legend>
               Will you retire under a regular LGERS service retirement, not a
@@ -129,6 +151,7 @@
             </div>
           </fieldset>
 
+          <h3 class="form-subheading">Service and sick leave</h3>
           <fieldset>
             <legend>Current sworn GFD service</legend>
             <div class="field-row">
@@ -163,8 +186,8 @@
                 Yes
               </label>
               <label>
-                <input type="radio" name="other-lgers" value="na" />
-                N/A
+                <input type="radio" name="other-lgers" value="no" />
+                No—only GFD service
               </label>
             </div>
           </fieldset>
@@ -220,7 +243,7 @@
             />
           </div>
 
-          <dl class="derived-values" aria-live="polite">
+          <dl class="derived-values">
             <div>
               <dt>Projected sick hours</dt>
               <dd id="projected-sick-hours">-</dd>
@@ -240,15 +263,21 @@
           </dl>
         </section>
 
-        <section class="form-section" aria-labelledby="benefit-service-title">
-          <h2 id="benefit-service-title">Creditable years of service</h2>
+        <section
+          id="benefit-service-section"
+          class="form-section"
+          aria-labelledby="benefit-service-title"
+        >
+          <h2 id="benefit-service-title">
+            Creditable service used for the allowance
+          </h2>
           <p class="hint">
             Projected GFD service + other LGERS service + sick-leave service
-            credit = creditable years of service
+            credit = creditable service.
           </p>
           <fieldset id="benefit-service-mode-group">
             <legend>
-              Which creditable years of service should the SSA equation use?
+              Which creditable service should the allowance calculation use?
             </legend>
             <div class="choice-stack">
               <label>
@@ -257,7 +286,7 @@
                   name="benefit-service-mode"
                   value="calculated"
                 />
-                Use calculated creditable years of service
+                Use calculated creditable service
               </label>
               <label>
                 <input
@@ -265,15 +294,16 @@
                   name="benefit-service-mode"
                   value="manual"
                 />
-                Enter separate creditable years of service
+                Enter separate creditable service
               </label>
             </div>
           </fieldset>
 
           <fieldset id="manual-service-fields" hidden>
-            <legend>Creditable years of service</legend>
+            <legend>Creditable service used for the allowance</legend>
             <p class="hint">
-              This value changes the SSA equation only, not eligibility.
+              This value changes the allowance calculation only, not
+              eligibility.
             </p>
             <div class="field-row">
               <div class="field">
@@ -299,15 +329,19 @@
             </div>
           </fieldset>
 
-          <dl class="derived-values" aria-live="polite">
+          <dl class="derived-values">
             <div>
-              <dt>Creditable years of service used</dt>
+              <dt>Creditable service used for the allowance</dt>
               <dd id="benefit-service-value">-</dd>
             </div>
           </dl>
         </section>
 
-        <section class="form-section" aria-labelledby="salary-title">
+        <section
+          id="salary-section"
+          class="form-section"
+          aria-labelledby="salary-title"
+        >
           <h2 id="salary-title">Retirement salary</h2>
           <fieldset id="salary-mode-group">
             <legend>How should retirement salary be estimated?</legend>
@@ -379,7 +413,7 @@
             </div>
           </fieldset>
 
-          <dl class="derived-values" aria-live="polite">
+          <dl class="derived-values">
             <div>
               <dt>Projected retirement salary</dt>
               <dd id="projected-salary">-</dd>
@@ -387,46 +421,51 @@
           </dl>
         </section>
 
-        <button class="primary-button" type="submit">Submit</button>
+        <p
+          id="preview-status"
+          class="visually-hidden"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        ></p>
+
+        <button id="calculate-button" class="primary-button" type="submit">
+          Calculate my allowance estimate
+        </button>
       </form>
 
-      <section
-        id="result"
-        class="result"
-        tabindex="-1"
-        aria-live="polite"
-        hidden
-      >
-        <h2 id="result-title"></h2>
+      <section id="result" class="result" aria-labelledby="result-title" hidden>
+        <h2 id="result-title" tabindex="-1"></h2>
         <p id="result-summary"></p>
         <ul id="requirements-results" class="result-checks"></ul>
 
         <div id="benefit-results" hidden>
           <dl class="benefit-totals">
-            <div>
-              <dt>Estimated annual benefit</dt>
-              <dd id="annual-benefit"></dd>
-            </div>
-            <div>
-              <dt>Estimated gross biweekly payment</dt>
+            <div class="allowance-primary">
+              <dt>Estimated gross biweekly allowance</dt>
               <dd id="biweekly-benefit"></dd>
             </div>
             <div>
-              <dt>Estimated total through age 62 month</dt>
+              <dt>Estimated annual allowance</dt>
+              <dd id="annual-benefit"></dd>
+            </div>
+            <div>
+              <dt>Estimated total allowance</dt>
               <dd id="total-benefit"></dd>
             </div>
           </dl>
+          <p id="allowance-coverage" class="allowance-coverage"></p>
           <dl class="calculation-breakdown">
             <div>
               <dt>Retirement salary</dt>
               <dd id="breakdown-salary"></dd>
             </div>
             <div>
-              <dt>Creditable years of service</dt>
+              <dt>Creditable service used for the allowance</dt>
               <dd id="breakdown-service"></dd>
             </div>
             <div>
-              <dt>Multiplier</dt>
+              <dt>Allowance multiplier</dt>
               <dd>0.0085</dd>
             </div>
             <div>
@@ -437,13 +476,24 @@
         </div>
 
         <p class="disclaimer">
-          This calculator provides an estimate only. Verify eligibility,
-          service credit, salary, and payment amounts with the appropriate
-          benefits authority before making a retirement decision.
+          This calculator provides an estimate only. Verify your information and
+          eligibility using the
+          <a
+            href="https://www.myncretirement.com/documents/files/actives/lgers-handbook/open"
+            target="_blank"
+            rel="noopener"
+          >official LGERS Member Handbook (opens in a new tab)</a>
+          and the appropriate retirement authority before making a retirement
+          decision.
         </p>
-        <button id="start-over" class="secondary-button" type="button">
-          Start over
-        </button>
+        <div class="result-actions">
+          <button id="edit-answers" class="secondary-button" type="button">
+            Change answers
+          </button>
+          <button id="start-over" class="secondary-button" type="button">
+            Start over
+          </button>
+        </div>
       </section>
 
       <details class="assumptions">
@@ -452,8 +502,8 @@
           <li>Retirement occurs January 31.</li>
           <li>Sick leave accrues at no more than eight hours per month.</li>
           <li>Salary raises are 4% on applicable July 1 dates.</li>
-          <li>The benefit multiplier is 0.0085.</li>
-          <li>Biweekly estimates use 26 checks per year.</li>
+          <li>The allowance multiplier is 0.0085.</li>
+          <li>Gross biweekly allowance uses 26 payments per year.</li>
         </ul>
       </details>
     </main>
