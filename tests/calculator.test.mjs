@@ -2,10 +2,17 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  RANK_SALARIES,
   ageAtRetirement,
+  calculateBenefit,
+  calculateEstimate,
+  countJulyRaises,
+  coveredBenefitMonths,
   evaluateEligibility,
   projectService,
+  projectSalary,
   projectSickHours,
+  retirementDateForYear,
   sickHoursToServiceMonths,
   toServiceYears,
   yearFractionActualActual,
@@ -144,4 +151,119 @@ test("fails each nonnumeric eligibility requirement independently", () => {
       .map((check) => check.key),
     ["under-62", "regular-service", "continuous-gfd", "gfd-share"],
   );
+});
+
+test("counts July 1 raises after the base date and before retirement", () => {
+  assert.equal(
+    countJulyRaises({
+      baseDate: new Date(2026, 6, 17),
+      retirementDate: new Date(2030, 0, 31),
+    }),
+    3,
+  );
+});
+
+test("a July promotion receives its first raise the following July", () => {
+  assert.equal(
+    projectSalary({
+      mode: "rank",
+      rank: "captain",
+      promotionMonth: 7,
+      promotionYear: 2027,
+      today: new Date(2026, 6, 17),
+      retirementDate: new Date(2030, 0, 31),
+    }),
+    RANK_SALARIES.captain.salary * 1.04 ** 2,
+  );
+});
+
+test("uses anticipated salary directly", () => {
+  assert.equal(
+    projectSalary({
+      mode: "anticipated",
+      amount: 123456,
+      today: new Date(2026, 6, 17),
+      retirementDate: new Date(2030, 0, 31),
+    }),
+    123456,
+  );
+});
+
+test("counts covered months through the end of the age-62 month", () => {
+  assert.equal(
+    coveredBenefitMonths({
+      birthYear: 1968,
+      birthMonth: 1,
+      retirementYear: 2029,
+    }),
+    12,
+  );
+  assert.equal(
+    coveredBenefitMonths({
+      birthYear: 1968,
+      birthMonth: 2,
+      retirementYear: 2030,
+    }),
+    1,
+  );
+});
+
+test("calculates annual, biweekly, and monthly-prorated totals", () => {
+  assert.deepEqual(
+    calculateBenefit({
+      benefitServiceYears: 30,
+      retirementSalary: 100000,
+      coveredMonths: 12,
+    }),
+    {
+      annual: 25500,
+      biweekly: 25500 / 26,
+      total: 25500,
+    },
+  );
+});
+
+test("manual benefit service changes payments without changing eligibility", () => {
+  const estimate = calculateEstimate(
+    {
+      retirementYear: 2030,
+      birthMonth: 1,
+      birthYear: 1970,
+      regularServiceRetirement: true,
+      continuousGfd: true,
+      currentGfd: { years: 26, months: 0 },
+      otherLgers: null,
+      sick: { mode: "retirement", hours: 0 },
+      benefitService: { mode: "manual", years: 28, months: 0 },
+      salary: { mode: "anticipated", amount: 100000 },
+    },
+    new Date(2026, 0, 31),
+  );
+
+  assert.equal(estimate.service.eligibilityServiceYears, 30);
+  assert.equal(estimate.service.benefitServiceYears, 28);
+  assert.equal(estimate.eligibility.eligible, true);
+  assert.equal(estimate.benefit.annual, 23800);
+});
+
+test("returns no benefit when the applicant is ineligible", () => {
+  const estimate = calculateEstimate(
+    {
+      retirementYear: 2030,
+      birthMonth: 1,
+      birthYear: 1968,
+      regularServiceRetirement: true,
+      continuousGfd: true,
+      currentGfd: { years: 26, months: 0 },
+      otherLgers: null,
+      sick: { mode: "retirement", hours: 0 },
+      benefitService: { mode: "calculated" },
+      salary: { mode: "anticipated", amount: 100000 },
+    },
+    new Date(2026, 0, 31),
+  );
+
+  assert.equal(estimate.retirementAge, 62);
+  assert.equal(estimate.eligibility.eligible, false);
+  assert.equal(estimate.benefit, null);
 });

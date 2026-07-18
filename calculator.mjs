@@ -147,3 +147,181 @@ export function evaluateEligibility({
     unreduced,
   };
 }
+
+export const RANK_SALARIES = Object.freeze({
+  srff: { label: "SrFF", salary: 56_434 },
+  engineerInspector: {
+    label: "Engineer / Sr Fire Insp.",
+    salary: 66_980,
+  },
+  captain: {
+    label: "Captain / Asst. Fire Marshal",
+    salary: 80_327,
+  },
+  battalionChief: {
+    label: "Batt. Chief / Dep. Fire Marshal",
+    salary: 94_040,
+  },
+  assistantChief: {
+    label: "Assistant Fire Chief / Fire Marshal",
+    salary: 120_373,
+  },
+  deputyChief: { label: "Deputy Fire Chief", salary: 135_395 },
+  fireChief: { label: "Fire Chief", salary: 180_183 },
+});
+
+export const RAISE_RATE = 0.04;
+export const BENEFIT_MULTIPLIER = 0.0085;
+export const CHECKS_PER_YEAR = 26;
+
+function dateNumber(date) {
+  return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+export function retirementDateForYear(year) {
+  return new Date(year, 0, 31);
+}
+
+export function countJulyRaises({ baseDate, retirementDate }) {
+  const base = dateNumber(baseDate);
+  const retirement = dateNumber(retirementDate);
+  let count = 0;
+
+  for (
+    let year = baseDate.getFullYear();
+    year <= retirementDate.getFullYear();
+    year += 1
+  ) {
+    const raise = Date.UTC(year, 6, 1);
+    if (raise > base && raise < retirement) {
+      count += 1;
+    }
+  }
+
+  return count;
+}
+
+export function projectSalary({
+  mode,
+  amount,
+  rank,
+  promotionMonth,
+  promotionYear,
+  today,
+  retirementDate,
+}) {
+  if (mode === "anticipated") {
+    return amount;
+  }
+
+  let baseSalary = amount;
+  let baseDate = today;
+
+  if (mode === "rank") {
+    baseSalary = RANK_SALARIES[rank].salary;
+    baseDate = new Date(promotionYear, promotionMonth - 1, 1);
+  }
+
+  const raises = countJulyRaises({ baseDate, retirementDate });
+  return baseSalary * (1 + RAISE_RATE) ** raises;
+}
+
+export function coveredBenefitMonths({
+  birthYear,
+  birthMonth,
+  retirementYear,
+}) {
+  return (birthYear + 62 - retirementYear) * 12 + birthMonth - 1;
+}
+
+export function calculateBenefit({
+  benefitServiceYears,
+  retirementSalary,
+  coveredMonths,
+}) {
+  const annual =
+    BENEFIT_MULTIPLIER * benefitServiceYears * retirementSalary;
+
+  return {
+    annual,
+    biweekly: annual / CHECKS_PER_YEAR,
+    total: (annual / 12) * coveredMonths,
+  };
+}
+
+export function calculateEstimate(input, today = new Date()) {
+  const retirementDate = retirementDateForYear(input.retirementYear);
+  const currentGfdYears = toServiceYears(input.currentGfd);
+  const otherLgersYears =
+    input.otherLgers === null ? 0 : toServiceYears(input.otherLgers);
+  const projected = projectService({
+    today,
+    retirementDate,
+    currentGfdYears,
+    otherLgersYears,
+  });
+  const retirementSickHours =
+    input.sick.mode === "current"
+      ? projectSickHours({
+          currentHours: input.sick.hours,
+          currentWorkedYears: currentGfdYears + otherLgersYears,
+          remainingYears: projected.remainingYears,
+        })
+      : input.sick.hours;
+  const sickServiceMonths =
+    sickHoursToServiceMonths(retirementSickHours);
+  const sickServiceYears = sickServiceMonths / 12;
+  const eligibilityServiceYears =
+    projected.projectedGfdYears + otherLgersYears + sickServiceYears;
+  const retirementAge = ageAtRetirement({
+    birthYear: input.birthYear,
+    birthMonth: input.birthMonth,
+    retirementYear: input.retirementYear,
+  });
+  const eligibility = evaluateEligibility({
+    retirementAge,
+    regularServiceRetirement: input.regularServiceRetirement,
+    continuousGfd: input.continuousGfd,
+    projectedGfdYears: projected.projectedGfdYears,
+    eligibilityServiceYears,
+  });
+  const benefitServiceYears =
+    input.benefitService.mode === "manual"
+      ? toServiceYears(input.benefitService)
+      : eligibilityServiceYears;
+  const retirementSalary = projectSalary({
+    ...input.salary,
+    today,
+    retirementDate,
+  });
+  const coveredMonths = coveredBenefitMonths({
+    birthYear: input.birthYear,
+    birthMonth: input.birthMonth,
+    retirementYear: input.retirementYear,
+  });
+
+  return {
+    dates: { retirementDate, remainingYears: projected.remainingYears },
+    service: {
+      currentGfdYears,
+      otherLgersYears,
+      projectedGfdYears: projected.projectedGfdYears,
+      retirementSickHours,
+      sickServiceMonths,
+      sickServiceYears,
+      eligibilityServiceYears,
+      benefitServiceYears,
+    },
+    retirementAge,
+    eligibility,
+    retirementSalary,
+    coveredMonths,
+    benefit: eligibility.eligible
+      ? calculateBenefit({
+          benefitServiceYears,
+          retirementSalary,
+          coveredMonths,
+        })
+      : null,
+  };
+}
