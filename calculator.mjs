@@ -95,6 +95,13 @@ export function ageAtRetirement({
   return retirementYear - birthYear - (birthMonth > 1 ? 1 : 0);
 }
 
+function serviceText(years) {
+  const totalMonths = Math.round(years * 12);
+  const wholeYears = Math.floor(totalMonths / 12);
+  const monthsOnly = totalMonths % 12;
+  return wholeYears + " years, " + monthsOnly + " months";
+}
+
 export function evaluateEligibility({
   retirementAge,
   regularServiceRetirement,
@@ -102,46 +109,92 @@ export function evaluateEligibility({
   projectedGfdYears,
   eligibilityServiceYears,
 }) {
+  const hasAge = Number.isFinite(retirementAge);
+  const hasProjectedGfd = Number.isFinite(projectedGfdYears);
+  const hasEligibilityService = Number.isFinite(eligibilityServiceYears);
   const gfdShare =
-    eligibilityServiceYears > 0
+    hasProjectedGfd && hasEligibilityService && eligibilityServiceYears > 0
       ? projectedGfdYears / eligibilityServiceYears
-      : 0;
+      : null;
   const unreduced =
-    eligibilityServiceYears >= 30 ||
-    (retirementAge >= 60 && eligibilityServiceYears >= 25);
+    hasAge && hasEligibilityService
+      ? eligibilityServiceYears >= 30 ||
+        (retirementAge >= 60 && eligibilityServiceYears >= 25)
+      : null;
+  const continuousPassed =
+    continuousGfd === false
+      ? false
+      : continuousGfd === true && hasProjectedGfd
+        ? projectedGfdYears >= 5
+        : null;
 
   const checks = [
     {
       key: "under-62",
-      label: "Under age 62 on the January 31 retirement date",
-      passed: retirementAge < 62,
+      label: "Age on the January 31 retirement date",
+      passed: hasAge ? retirementAge < 62 : null,
+      actual: hasAge ? retirementAge + " years old" : null,
+      requirement: "Under age 62",
+      targetId: "birth-year",
     },
     {
       key: "regular-service",
-      label: "Regular LGERS service retirement, not disability retirement",
-      passed: regularServiceRetirement === true,
+      label: "Regular LGERS service retirement",
+      passed:
+        regularServiceRetirement === undefined
+          ? null
+          : regularServiceRetirement === true,
+      actual:
+        regularServiceRetirement === undefined
+          ? null
+          : regularServiceRetirement
+            ? "Yes"
+            : "No",
+      requirement: "Regular service retirement, not disability retirement",
+      targetId: "regular-retirement-group",
     },
     {
       key: "continuous-gfd",
-      label:
-        "At least five continuous years as a sworn Greensboro firefighter immediately before retirement",
-      passed: continuousGfd === true && projectedGfdYears >= 5,
+      label: "Continuous sworn GFD service",
+      passed: continuousPassed,
+      actual:
+        continuousGfd === undefined
+          ? null
+          : continuousGfd === false
+            ? "No"
+            : hasProjectedGfd
+              ? "Yes; " + serviceText(projectedGfdYears) + " projected GFD service"
+              : "Yes",
+      requirement: "At least five continuous years immediately before retirement",
+      targetId: "continuous-gfd-group",
     },
     {
       key: "gfd-share",
-      label: "At least 50% of total creditable service is sworn GFD service",
-      passed: gfdShare >= 0.5,
+      label: "Sworn GFD share of total creditable service",
+      passed: gfdShare === null ? null : gfdShare >= 0.5,
+      actual: gfdShare === null ? null : (gfdShare * 100).toFixed(1) + "%",
+      requirement: "At least 50%",
+      targetId: "gfd-years",
     },
     {
       key: "unreduced",
-      label:
-        "Unreduced LGERS service retirement: 30 years, or age 60 with 25 years",
+      label: "Unreduced LGERS service retirement",
       passed: unreduced,
+      actual:
+        unreduced === null
+          ? null
+          : serviceText(eligibilityServiceYears) + " at age " + retirementAge,
+      requirement: "30 years, or age 60 with at least 25 years",
+      targetId: "gfd-years",
     },
   ];
+  const complete = checks.every((check) => check.passed !== null);
+  const failed = checks.some((check) => check.passed === false);
 
   return {
-    eligible: checks.every((check) => check.passed),
+    eligible: complete && !failed,
+    complete,
+    failed,
     checks,
     gfdShare,
     unreduced,

@@ -394,3 +394,53 @@ test("rejects a promotion date on or after retirement", () => {
     "Enter a promotion month and year before retirement.",
   );
 });
+
+test("reports an explicit retirement-type failure before service is known", () => {
+  const result = evaluateEligibility({
+    regularServiceRetirement: false,
+  });
+
+  assert.equal(result.failed, true);
+  assert.equal(result.complete, false);
+  assert.equal(
+    result.checks.find((check) => check.key === "regular-service").passed,
+    false,
+  );
+  assert.equal(
+    result.checks.find((check) => check.key === "gfd-share").passed,
+    null,
+  );
+});
+
+test("reports a known age failure before service and salary are known", () => {
+  const result = evaluateEligibility({ retirementAge: 62 });
+  const age = result.checks.find((check) => check.key === "under-62");
+
+  assert.equal(result.failed, true);
+  assert.equal(age.passed, false);
+  assert.equal(age.actual, "62 years old");
+  assert.equal(age.requirement, "Under age 62");
+  assert.equal(age.targetId, "birth-year");
+});
+
+test("returns actual and required evidence for complete eligibility", () => {
+  const result = evaluateEligibility({
+    retirementAge: 60,
+    regularServiceRetirement: true,
+    continuousGfd: true,
+    projectedGfdYears: 20,
+    eligibilityServiceYears: 30,
+  });
+
+  assert.equal(result.complete, true);
+  assert.equal(result.failed, false);
+  assert.equal(result.eligible, true);
+  assert.equal(
+    result.checks.find((check) => check.key === "gfd-share").actual,
+    "66.7%",
+  );
+  assert.equal(
+    result.checks.find((check) => check.key === "unreduced").actual,
+    "30 years, 0 months at age 60",
+  );
+});
