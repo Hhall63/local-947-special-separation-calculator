@@ -206,7 +206,15 @@ function clearErrors() {
   document.querySelectorAll(".field-error").forEach((node) => node.remove());
   document.querySelectorAll("[aria-invalid]").forEach((node) => {
     node.removeAttribute("aria-invalid");
-    node.removeAttribute("aria-describedby");
+    const descriptions = (node.getAttribute("aria-describedby") ?? "")
+      .split(/\s+/)
+      .filter((id) => id && id !== node.dataset.validationErrorId);
+    if (descriptions.length) {
+      node.setAttribute("aria-describedby", descriptions.join(" "));
+    } else {
+      node.removeAttribute("aria-describedby");
+    }
+    delete node.dataset.validationErrorId;
   });
 }
 
@@ -230,7 +238,14 @@ function showErrors(errors) {
     target.insertAdjacentElement("afterend", error);
     for (const itemControl of controls) {
       itemControl.setAttribute("aria-invalid", "true");
-      itemControl.setAttribute("aria-describedby", errorId);
+      const descriptions = new Set(
+        (itemControl.getAttribute("aria-describedby") ?? "")
+          .split(/\s+/)
+          .filter(Boolean),
+      );
+      descriptions.add(errorId);
+      itemControl.setAttribute("aria-describedby", [...descriptions].join(" "));
+      itemControl.dataset.validationErrorId = errorId;
     }
 
     const item = document.createElement("li");

@@ -74,6 +74,8 @@
       </section>
 
       <form id="calculator-form" novalidate>
+        <p class="privacy-note">All questions currently shown are required.</p>
+
         <div id="error-summary" class="error-summary" tabindex="-1" hidden>
           <h2>Check your answers</h2>
           <ul id="error-list"></ul>
@@ -84,9 +86,17 @@
 
           <h3 class="form-subheading">Retirement date and age</h3>
           <div class="field">
-            <label for="retirement-year">Estimated retirement year</label>
-            <input id="retirement-year" type="number" inputmode="numeric" />
-            <p class="hint">Retirement is assumed to be January 31.</p>
+            <label for="retirement-year">Estimated retirement year (4 digits)</label>
+            <input
+              id="retirement-year"
+              type="number"
+              inputmode="numeric"
+              aria-describedby="retirement-year-hint"
+              required
+            />
+            <p id="retirement-year-hint" class="hint">
+              Retirement is assumed to be January 31.
+            </p>
           </div>
 
           <fieldset>
@@ -94,7 +104,7 @@
             <div class="field-row">
               <div class="field">
                 <label for="birth-month">Month</label>
-                <select id="birth-month">
+                <select id="birth-month" autocomplete="bday-month" required>
                   <option value="">Select month</option>
                   <option value="1">January</option>
                   <option value="2">February</option>
@@ -111,42 +121,56 @@
                 </select>
               </div>
               <div class="field">
-                <label for="birth-year">Year</label>
-                <input id="birth-year" type="number" inputmode="numeric" />
+                <label for="birth-year">Year (4 digits)</label>
+                <input
+                  id="birth-year"
+                  type="number"
+                  inputmode="numeric"
+                  autocomplete="bday-year"
+                  required
+                />
               </div>
             </div>
           </fieldset>
 
           <h3 class="form-subheading">Eligibility questions</h3>
-          <fieldset id="regular-retirement-group">
+          <fieldset
+            id="regular-retirement-group"
+            role="radiogroup"
+            aria-required="true"
+          >
             <legend>
               Will you retire under a regular LGERS service retirement, not a
               disability retirement?
             </legend>
             <div class="choice-row">
               <label>
-                <input type="radio" name="regular-retirement" value="yes" />
+                <input type="radio" name="regular-retirement" value="yes" required />
                 Yes
               </label>
               <label>
-                <input type="radio" name="regular-retirement" value="no" />
+                <input type="radio" name="regular-retirement" value="no" required />
                 No
               </label>
             </div>
           </fieldset>
 
-          <fieldset id="continuous-gfd-group">
+          <fieldset
+            id="continuous-gfd-group"
+            role="radiogroup"
+            aria-required="true"
+          >
             <legend>
               Will you have at least five continuous years as a sworn
               Greensboro firefighter immediately before retirement?
             </legend>
             <div class="choice-row">
               <label>
-                <input type="radio" name="continuous-gfd" value="yes" />
+                <input type="radio" name="continuous-gfd" value="yes" required />
                 Yes
               </label>
               <label>
-                <input type="radio" name="continuous-gfd" value="no" />
+                <input type="radio" name="continuous-gfd" value="no" required />
                 No
               </label>
             </div>
@@ -163,6 +187,7 @@
                   type="number"
                   min="0"
                   inputmode="numeric"
+                  required
                 />
               </div>
               <div class="field">
@@ -174,20 +199,25 @@
                   max="11"
                   value="0"
                   inputmode="numeric"
+                  required
                 />
               </div>
             </div>
           </fieldset>
 
-          <fieldset id="other-lgers-group">
+          <fieldset
+            id="other-lgers-group"
+            role="radiogroup"
+            aria-required="true"
+          >
             <legend>Do you have other LGERS service?</legend>
             <div class="choice-row">
               <label>
-                <input type="radio" name="other-lgers" value="yes" />
+                <input type="radio" name="other-lgers" value="yes" required />
                 Yes
               </label>
               <label>
-                <input type="radio" name="other-lgers" value="no" />
+                <input type="radio" name="other-lgers" value="no" required />
                 No—only GFD service
               </label>
             </div>
@@ -203,6 +233,7 @@
                   type="number"
                   min="0"
                   inputmode="numeric"
+                  required
                 />
               </div>
               <div class="field">
@@ -214,20 +245,25 @@
                   max="11"
                   value="0"
                   inputmode="numeric"
+                  required
                 />
               </div>
             </div>
           </fieldset>
 
-          <fieldset id="sick-mode-group">
+          <fieldset
+            id="sick-mode-group"
+            role="radiogroup"
+            aria-required="true"
+          >
             <legend>Which sick-leave amount are you entering?</legend>
             <div class="choice-stack">
               <label>
-                <input type="radio" name="sick-mode" value="current" />
+                <input type="radio" name="sick-mode" value="current" required />
                 Current sick hours
               </label>
               <label>
-                <input type="radio" name="sick-mode" value="retirement" />
+                <input type="radio" name="sick-mode" value="retirement" required />
                 Sick hours expected at retirement
               </label>
             </div>
@@ -241,6 +277,7 @@
               min="0"
               step="0.25"
               inputmode="decimal"
+              required
             />
           </div>
 
@@ -276,7 +313,11 @@
             Projected GFD service + other LGERS service + sick-leave service
             credit = creditable service.
           </p>
-          <fieldset id="benefit-service-mode-group">
+          <fieldset
+            id="benefit-service-mode-group"
+            role="radiogroup"
+            aria-required="true"
+          >
             <legend>
               Which creditable service should the allowance calculation use?
             </legend>
@@ -286,6 +327,7 @@
                   type="radio"
                   name="benefit-service-mode"
                   value="calculated"
+                  required
                 />
                 Use calculated creditable service
               </label>
@@ -294,6 +336,7 @@
                   type="radio"
                   name="benefit-service-mode"
                   value="manual"
+                  required
                 />
                 Enter separate creditable service
               </label>
@@ -314,6 +357,7 @@
                   type="number"
                   min="0"
                   inputmode="numeric"
+                  required
                 />
               </div>
               <div class="field">
@@ -325,6 +369,7 @@
                   max="11"
                   value="0"
                   inputmode="numeric"
+                  required
                 />
               </div>
             </div>
@@ -344,7 +389,11 @@
           aria-labelledby="salary-title"
         >
           <h2 id="salary-title">Retirement salary</h2>
-          <fieldset id="salary-mode-group">
+          <fieldset
+            id="salary-mode-group"
+            role="radiogroup"
+            aria-required="true"
+          >
             <legend>How should retirement salary be estimated?</legend>
             <div class="choice-stack">
               <label>
@@ -352,15 +401,16 @@
                   type="radio"
                   name="salary-mode"
                   value="anticipated"
+                  required
                 />
                 Enter anticipated salary at retirement
               </label>
               <label>
-                <input type="radio" name="salary-mode" value="current" />
+                <input type="radio" name="salary-mode" value="current" required />
                 Project current salary with 4% July 1 raises
               </label>
               <label>
-                <input type="radio" name="salary-mode" value="rank" />
+                <input type="radio" name="salary-mode" value="rank" required />
                 Use retirement rank and promotion date
               </label>
             </div>
@@ -374,6 +424,7 @@
               min="0"
               step="0.01"
               inputmode="decimal"
+              required
             />
           </div>
 
@@ -385,6 +436,7 @@
               min="0"
               step="0.01"
               inputmode="decimal"
+              required
             />
           </div>
 
@@ -392,23 +444,24 @@
             <legend>Retirement rank and promotion date</legend>
             <div class="field">
               <label for="rank">Rank at retirement</label>
-              <select id="rank">
+              <select id="rank" required>
                 <option value="">Select rank</option>
               </select>
             </div>
             <div class="field-row">
               <div class="field">
                 <label for="promotion-month">Promotion month</label>
-                <select id="promotion-month">
+                <select id="promotion-month" required>
                   <option value="">Select month</option>
                 </select>
               </div>
               <div class="field">
-                <label for="promotion-year">Promotion year</label>
+                <label for="promotion-year">Promotion year (4 digits)</label>
                 <input
                   id="promotion-year"
                   type="number"
                   inputmode="numeric"
+                  required
                 />
               </div>
             </div>

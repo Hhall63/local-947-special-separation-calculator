@@ -79,6 +79,10 @@ async function controllerFixture() {
       this.attributes.set(name, value);
     }
 
+    getAttribute(name) {
+      return this.attributes.get(name) ?? null;
+    }
+
     removeAttribute(name) {
       this.attributes.delete(name);
     }
@@ -254,6 +258,74 @@ test("the Local 947 logo path is declared", async () => {
     /src="assets\/local-947-logo\.png"\s+alt=""/,
     "The logo repeats the adjacent brand text, so it must be decorative",
   );
+});
+
+test("visible and conditional questions expose required and year-format cues", async () => {
+  const html = await readFile(new URL("index.html", rootUrl), "utf8");
+  const controls = html.match(/<(?:input|select)\b[^>]*>/g) ?? [];
+  const fieldsets = html.match(/<fieldset\b[^>]*>/g) ?? [];
+
+  assert.ok(controls.length > 0);
+  assert.ok(
+    controls.every((control) => /\brequired\b/.test(control)),
+    "Every visible or conditionally visible form control must be required",
+  );
+  assert.ok(fieldsets.length > 0);
+  assert.ok(
+    fieldsets
+      .filter((fieldset) => /aria-required="true"/.test(fieldset))
+      .every((fieldset) => /role="radiogroup"/.test(fieldset)),
+    "ARIA required semantics belong on radio groups",
+  );
+  for (const id of [
+    "regular-retirement-group",
+    "continuous-gfd-group",
+    "other-lgers-group",
+    "sick-mode-group",
+    "benefit-service-mode-group",
+    "salary-mode-group",
+  ]) {
+    assert.match(
+      html,
+      new RegExp(
+        '<fieldset[^>]*id="' + id + '"[^>]*role="radiogroup"[^>]*aria-required="true"',
+      ),
+    );
+  }
+  assert.match(html, /All questions currently shown are required\./);
+  assert.match(
+    html,
+    /id="retirement-year"[^>]*aria-describedby="retirement-year-hint"/,
+  );
+  assert.match(html, /id="retirement-year-hint"[^>]*>[\s\S]*January 31/);
+  assert.match(html, /Estimated retirement year \(4 digits\)/);
+  assert.match(html, /Date of birth[\s\S]*Year \(4 digits\)/);
+  assert.match(html, /Promotion year \(4 digits\)/);
+  assert.match(html, /id="birth-month"[^>]*autocomplete="bday-month"/);
+  assert.match(html, /id="birth-year"[^>]*autocomplete="bday-year"/);
+});
+
+test("validation appends and removes only its error description", async (t) => {
+  const fixture = await controllerFixture();
+  t.after(fixture.cleanup);
+  const retirementYear = fixture.get("retirement-year");
+  retirementYear.setAttribute("aria-describedby", "retirement-year-hint");
+
+  fixture.form.dispatch("submit");
+
+  assert.equal(
+    retirementYear.getAttribute("aria-describedby"),
+    "retirement-year-hint retirement-year-error",
+  );
+  assert.equal(retirementYear.getAttribute("aria-invalid"), "true");
+
+  fixture.get("start-over").dispatch("click");
+
+  assert.equal(
+    retirementYear.getAttribute("aria-describedby"),
+    "retirement-year-hint",
+  );
+  assert.equal(retirementYear.getAttribute("aria-invalid"), null);
 });
 
 test("browser controller wires validation, calculation, results, and reset", async () => {
@@ -490,6 +562,17 @@ test("styles include focus, responsive, and reduced-motion safeguards", async ()
 
 test("the copied Local 947 logo exists", async () => {
   await access(new URL("assets/local-947-logo.png", rootUrl));
+});
+
+test("focus uses brand-aware two-color contrast on every calculator surface", async () => {
+  const css = await readFile(new URL("styles.css", rootUrl), "utf8");
+
+  assert.match(css, /--focus:\s*oklch\(/);
+  assert.match(css, /--navy:\s*oklch\(/);
+  assert.match(
+    css,
+    /:focus-visible\s*\{[^}]*outline:\s*3px solid var\(--focus\);[^}]*box-shadow:\s*0 0 0 7px var\(--navy\);[^}]*\}/s,
+  );
 });
 
 test("uses allowance copy, official guidance, and the approved result order", async () => {

@@ -213,7 +213,8 @@ select:hover {
 
 :focus-visible {
   outline: 3px solid var(--focus);
-  outline-offset: 3px;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 7px var(--navy);
 }
 
 .choice-row,
