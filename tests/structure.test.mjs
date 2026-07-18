@@ -46,3 +46,31 @@ test("browser controller wires validation, calculation, results, and reset", asy
     assert.ok(app.includes(fragment), "Missing controller hook: " + fragment);
   }
 });
+
+test("browser controller reads numeric inputs and selects", async () => {
+  const app = await readFile(new URL("app.mjs", rootUrl), "utf8");
+
+  assert.ok(
+    app.includes("Number(input.value)"),
+    "Numeric form values must work for both input and select controls",
+  );
+});
+
+test("styles include focus, responsive, and reduced-motion safeguards", async () => {
+  const css = await readFile(new URL("styles.css", rootUrl), "utf8");
+
+  for (const fragment of [
+    ":focus-visible",
+    "min-block-size: 44px",
+    "clip-path: inset(50%)",
+    "@media (max-width: 640px)",
+    "@media (prefers-reduced-motion: reduce)",
+    "oklch(",
+  ]) {
+    assert.ok(css.includes(fragment), "Missing CSS safeguard: " + fragment);
+  }
+});
+
+test("the copied Local 947 logo exists", async () => {
+  await access(new URL("assets/local-947-logo.png", rootUrl));
+});

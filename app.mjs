@@ -71,7 +71,7 @@ function booleanChoice(name) {
 
 function numberValue(id) {
   const input = element(id);
-  return input.value === "" ? Number.NaN : input.valueAsNumber;
+  return input.value === "" ? Number.NaN : Number(input.value);
 }
 
 function serviceValue(yearsId, monthsId) {
