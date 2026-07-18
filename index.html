@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Estimate Local 947 Special Separation Allowance eligibility and benefit amounts."
+    />
+    <title>Local 947 Special Separation Calculator</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#calculator">Skip to calculator</a>
+
+    <header class="site-header">
+      <div class="masthead">
+        <img
+          class="brand-logo"
+          src="assets/local-947-logo.png"
+          alt="Professional Fire Fighters of Greensboro Local 947"
+        />
+        <div>
+          <p class="brand-line">Professional Fire Fighters of Greensboro</p>
+          <h1>Local 947 Special Separation Calculator</h1>
+          <p class="header-copy">
+            A private, plain-language estimate. Your entries stay in this
+            browser.
+          </p>
+        </div>
+      </div>
+    </header>
+
+    <main id="calculator" class="page-shell">
+      <section aria-labelledby="requirements-title">
+        <h2 id="requirements-title">Before you begin</h2>
+        <p>You must meet every requirement to receive an estimate:</p>
+        <ul class="requirements">
+          <li>Be under age 62 on your January 31 retirement date.</li>
+          <li>
+            Complete at least five continuous years as a sworn Greensboro
+            firefighter immediately before retirement.
+          </li>
+          <li>
+            Have at least 50% of total creditable service as sworn Greensboro
+            firefighter service.
+          </li>
+          <li>
+            Retire on a regular, unreduced LGERS service retirement, not an
+            early reduced or disability retirement.
+          </li>
+        </ul>
+      </section>
+
+      <form id="calculator-form" novalidate>
+        <div id="error-summary" class="error-summary" tabindex="-1" hidden>
+          <h2>Check your answers</h2>
+          <ul id="error-list"></ul>
+        </div>
+
+        <section class="form-section" aria-labelledby="retirement-title">
+          <h2 id="retirement-title">Retirement and service</h2>
+
+          <div class="field">
+            <label for="retirement-year">Estimated retirement year</label>
+            <input id="retirement-year" type="number" inputmode="numeric" />
+            <p class="hint">Retirement is assumed to be January 31.</p>
+          </div>
+
+          <fieldset>
+            <legend>Date of birth</legend>
+            <div class="field-row">
+              <div class="field">
+                <label for="birth-month">Month</label>
+                <select id="birth-month">
+                  <option value="">Select month</option>
+                  <option value="1">January</option>
+                  <option value="2">February</option>
+                  <option value="3">March</option>
+                  <option value="4">April</option>
+                  <option value="5">May</option>
+                  <option value="6">June</option>
+                  <option value="7">July</option>
+                  <option value="8">August</option>
+                  <option value="9">September</option>
+                  <option value="10">October</option>
+                  <option value="11">November</option>
+                  <option value="12">December</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="birth-year">Year</label>
+                <input id="birth-year" type="number" inputmode="numeric" />
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset id="regular-retirement-group">
+            <legend>
+              Will you retire under a regular LGERS service retirement, not a
+              disability retirement?
+            </legend>
+            <div class="choice-row">
+              <label>
+                <input type="radio" name="regular-retirement" value="yes" />
+                Yes
+              </label>
+              <label>
+                <input type="radio" name="regular-retirement" value="no" />
+                No
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset id="continuous-gfd-group">
+            <legend>
+              Will you have at least five continuous years as a sworn
+              Greensboro firefighter immediately before retirement?
+            </legend>
+            <div class="choice-row">
+              <label>
+                <input type="radio" name="continuous-gfd" value="yes" />
+                Yes
+              </label>
+              <label>
+                <input type="radio" name="continuous-gfd" value="no" />
+                No
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Current sworn GFD service</legend>
+            <div class="field-row">
+              <div class="field">
+                <label for="gfd-years">Years</label>
+                <input
+                  id="gfd-years"
+                  type="number"
+                  min="0"
+                  inputmode="numeric"
+                />
+              </div>
+              <div class="field">
+                <label for="gfd-months">Months</label>
+                <input
+                  id="gfd-months"
+                  type="number"
+                  min="0"
+                  max="11"
+                  inputmode="numeric"
+                />
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset id="other-lgers-group">
+            <legend>Do you have other LGERS service?</legend>
+            <div class="choice-row">
+              <label>
+                <input type="radio" name="other-lgers" value="yes" />
+                Yes
+              </label>
+              <label>
+                <input type="radio" name="other-lgers" value="na" />
+                N/A
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset id="other-service-fields" hidden>
+            <legend>Current other LGERS service</legend>
+            <div class="field-row">
+              <div class="field">
+                <label for="other-years">Years</label>
+                <input
+                  id="other-years"
+                  type="number"
+                  min="0"
+                  inputmode="numeric"
+                />
+              </div>
+              <div class="field">
+                <label for="other-months">Months</label>
+                <input
+                  id="other-months"
+                  type="number"
+                  min="0"
+                  max="11"
+                  inputmode="numeric"
+                />
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset id="sick-mode-group">
+            <legend>Which sick-leave amount are you entering?</legend>
+            <div class="choice-stack">
+              <label>
+                <input type="radio" name="sick-mode" value="current" />
+                Current sick hours
+              </label>
+              <label>
+                <input type="radio" name="sick-mode" value="retirement" />
+                Sick hours expected at retirement
+              </label>
+            </div>
+          </fieldset>
+
+          <div class="field">
+            <label id="sick-hours-label" for="sick-hours">Sick hours</label>
+            <input
+              id="sick-hours"
+              type="number"
+              min="0"
+              step="0.25"
+              inputmode="decimal"
+            />
+          </div>
+
+          <dl class="derived-values" aria-live="polite">
+            <div>
+              <dt>Projected sick hours</dt>
+              <dd id="projected-sick-hours">-</dd>
+            </div>
+            <div>
+              <dt>Sick service</dt>
+              <dd id="sick-service">-</dd>
+            </div>
+            <div>
+              <dt>Projected GFD service</dt>
+              <dd id="projected-gfd-service">-</dd>
+            </div>
+            <div>
+              <dt>Eligibility service</dt>
+              <dd id="eligibility-service">-</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="form-section" aria-labelledby="benefit-service-title">
+          <h2 id="benefit-service-title">Benefit service value</h2>
+          <fieldset id="benefit-service-mode-group">
+            <legend>Which service value should the benefit equation use?</legend>
+            <div class="choice-stack">
+              <label>
+                <input
+                  type="radio"
+                  name="benefit-service-mode"
+                  value="calculated"
+                />
+                Use calculated retirement service
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name="benefit-service-mode"
+                  value="manual"
+                />
+                Enter a separate service value
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset id="manual-service-fields" hidden>
+            <legend>Benefit service</legend>
+            <p class="hint">
+              This value changes the payment equation only, not eligibility.
+            </p>
+            <div class="field-row">
+              <div class="field">
+                <label for="benefit-years">Years</label>
+                <input
+                  id="benefit-years"
+                  type="number"
+                  min="0"
+                  inputmode="numeric"
+                />
+              </div>
+              <div class="field">
+                <label for="benefit-months">Months</label>
+                <input
+                  id="benefit-months"
+                  type="number"
+                  min="0"
+                  max="11"
+                  inputmode="numeric"
+                />
+              </div>
+            </div>
+          </fieldset>
+
+          <dl class="derived-values" aria-live="polite">
+            <div>
+              <dt>Benefit service used</dt>
+              <dd id="benefit-service-value">-</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="form-section" aria-labelledby="salary-title">
+          <h2 id="salary-title">Retirement salary</h2>
+          <fieldset id="salary-mode-group">
+            <legend>How should retirement salary be estimated?</legend>
+            <div class="choice-stack">
+              <label>
+                <input
+                  type="radio"
+                  name="salary-mode"
+                  value="anticipated"
+                />
+                Enter anticipated salary at retirement
+              </label>
+              <label>
+                <input type="radio" name="salary-mode" value="current" />
+                Project current salary with 4% July 1 raises
+              </label>
+              <label>
+                <input type="radio" name="salary-mode" value="rank" />
+                Use retirement rank and promotion date
+              </label>
+            </div>
+          </fieldset>
+
+          <div id="anticipated-salary-field" class="field" hidden>
+            <label for="anticipated-salary">Anticipated annual salary</label>
+            <input
+              id="anticipated-salary"
+              type="number"
+              min="0"
+              step="0.01"
+              inputmode="decimal"
+            />
+          </div>
+
+          <div id="current-salary-field" class="field" hidden>
+            <label for="current-salary">Current annual salary</label>
+            <input
+              id="current-salary"
+              type="number"
+              min="0"
+              step="0.01"
+              inputmode="decimal"
+            />
+          </div>
+
+          <fieldset id="rank-fields" hidden>
+            <legend>Retirement rank and promotion date</legend>
+            <div class="field">
+              <label for="rank">Rank at retirement</label>
+              <select id="rank">
+                <option value="">Select rank</option>
+              </select>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="promotion-month">Promotion month</label>
+                <select id="promotion-month">
+                  <option value="">Select month</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="promotion-year">Promotion year</label>
+                <input
+                  id="promotion-year"
+                  type="number"
+                  inputmode="numeric"
+                />
+              </div>
+            </div>
+          </fieldset>
+
+          <dl class="derived-values" aria-live="polite">
+            <div>
+              <dt>Projected retirement salary</dt>
+              <dd id="projected-salary">-</dd>
+            </div>
+          </dl>
+        </section>
+
+        <button class="primary-button" type="submit">
+          Check eligibility and calculate
+        </button>
+      </form>
+
+      <section
+        id="result"
+        class="result"
+        tabindex="-1"
+        aria-live="polite"
+        hidden
+      >
+        <h2 id="result-title"></h2>
+        <p id="result-summary"></p>
+        <ul id="requirements-results" class="result-checks"></ul>
+
+        <div id="benefit-results" hidden>
+          <dl class="benefit-totals">
+            <div>
+              <dt>Estimated annual benefit</dt>
+              <dd id="annual-benefit"></dd>
+            </div>
+            <div>
+              <dt>Estimated gross biweekly payment</dt>
+              <dd id="biweekly-benefit"></dd>
+            </div>
+            <div>
+              <dt>Estimated total through age 62 month</dt>
+              <dd id="total-benefit"></dd>
+            </div>
+          </dl>
+          <dl class="calculation-breakdown">
+            <div>
+              <dt>Retirement salary</dt>
+              <dd id="breakdown-salary"></dd>
+            </div>
+            <div>
+              <dt>Benefit service</dt>
+              <dd id="breakdown-service"></dd>
+            </div>
+            <div>
+              <dt>Multiplier</dt>
+              <dd>0.0085</dd>
+            </div>
+            <div>
+              <dt>Covered months</dt>
+              <dd id="breakdown-months"></dd>
+            </div>
+          </dl>
+        </div>
+
+        <p class="disclaimer">
+          This calculator provides an estimate only. Verify eligibility,
+          service credit, salary, and payment amounts with the appropriate
+          benefits authority before making a retirement decision.
+        </p>
+        <button id="start-over" class="secondary-button" type="button">
+          Start over
+        </button>
+      </section>
+
+      <details class="assumptions">
+        <summary>Calculation assumptions</summary>
+        <ul>
+          <li>Retirement occurs January 31.</li>
+          <li>Sick leave accrues at no more than eight hours per month.</li>
+          <li>Salary raises are 4% on applicable July 1 dates.</li>
+          <li>The benefit multiplier is 0.0085.</li>
+          <li>Biweekly estimates use 26 checks per year.</li>
+        </ul>
+      </details>
+    </main>
+
+    <script type="module" src="app.mjs"></script>
+  </body>
+</html>
