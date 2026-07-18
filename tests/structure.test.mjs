@@ -56,6 +56,52 @@ test("browser controller reads numeric inputs and selects", async () => {
   );
 });
 
+test("uses approved creditable-years copy and defaults", async () => {
+  const html = await readFile(new URL("index.html", rootUrl), "utf8");
+  const normalizedHtml = html.replace(/\s+/g, " ");
+
+  for (const fragment of [
+    "Creditable years of service",
+    "Projected GFD service + other LGERS service + sick-leave service credit = creditable years of service",
+    "Which creditable years of service should the SSA equation use?",
+    "Use calculated creditable years of service",
+    "Enter separate creditable years of service",
+    "Creditable years of service used",
+    "This value changes the SSA equation only, not eligibility.",
+  ]) {
+    assert.ok(
+      normalizedHtml.includes(fragment),
+      "Missing approved copy: " + fragment,
+    );
+  }
+
+  assert.doesNotMatch(html, /benefit service|benefit equation|payment equation/i);
+  assert.match(html, /id="gfd-months"[\s\S]{0,180}value="0"/);
+  assert.match(html, /id="other-months"[\s\S]{0,180}value="0"/);
+  assert.match(html, /id="benefit-months"[\s\S]{0,180}value="0"/);
+  assert.match(
+    html,
+    /<button class="primary-button" type="submit">\s*Submit\s*<\/button>/,
+  );
+});
+
+test("rank choices show labels without starting pay", async () => {
+  const app = await readFile(new URL("app.mjs", rootUrl), "utf8");
+  assert.ok(app.includes("option.textContent = details.label;"));
+  assert.ok(
+    !app.includes('details.label + " - " + currency.format(details.salary)'),
+  );
+});
+
+test("form previews are white while result breakdowns keep their surface", async () => {
+  const css = await readFile(new URL("styles.css", rootUrl), "utf8");
+  assert.match(
+    css,
+    /\.benefit-totals,\s*\.calculation-breakdown\s*\{[\s\S]*?background: var\(--surface\);/,
+  );
+  assert.doesNotMatch(css, /\.derived-values[^\{]*\{[^}]*background:/);
+});
+
 test("styles include focus, responsive, and reduced-motion safeguards", async () => {
   const css = await readFile(new URL("styles.css", rootUrl), "utf8");
 

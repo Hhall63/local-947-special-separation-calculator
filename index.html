@@ -148,6 +148,7 @@
                   type="number"
                   min="0"
                   max="11"
+                  value="0"
                   inputmode="numeric"
                 />
               </div>
@@ -187,6 +188,7 @@
                   type="number"
                   min="0"
                   max="11"
+                  value="0"
                   inputmode="numeric"
                 />
               </div>
@@ -239,9 +241,15 @@
         </section>
 
         <section class="form-section" aria-labelledby="benefit-service-title">
-          <h2 id="benefit-service-title">Benefit service value</h2>
+          <h2 id="benefit-service-title">Creditable years of service</h2>
+          <p class="hint">
+            Projected GFD service + other LGERS service + sick-leave service
+            credit = creditable years of service
+          </p>
           <fieldset id="benefit-service-mode-group">
-            <legend>Which service value should the benefit equation use?</legend>
+            <legend>
+              Which creditable years of service should the SSA equation use?
+            </legend>
             <div class="choice-stack">
               <label>
                 <input
@@ -249,7 +257,7 @@
                   name="benefit-service-mode"
                   value="calculated"
                 />
-                Use calculated retirement service
+                Use calculated creditable years of service
               </label>
               <label>
                 <input
@@ -257,15 +265,15 @@
                   name="benefit-service-mode"
                   value="manual"
                 />
-                Enter a separate service value
+                Enter separate creditable years of service
               </label>
             </div>
           </fieldset>
 
           <fieldset id="manual-service-fields" hidden>
-            <legend>Benefit service</legend>
+            <legend>Creditable years of service</legend>
             <p class="hint">
-              This value changes the payment equation only, not eligibility.
+              This value changes the SSA equation only, not eligibility.
             </p>
             <div class="field-row">
               <div class="field">
@@ -284,6 +292,7 @@
                   type="number"
                   min="0"
                   max="11"
+                  value="0"
                   inputmode="numeric"
                 />
               </div>
@@ -292,7 +301,7 @@
 
           <dl class="derived-values" aria-live="polite">
             <div>
-              <dt>Benefit service used</dt>
+              <dt>Creditable years of service used</dt>
               <dd id="benefit-service-value">-</dd>
             </div>
           </dl>
@@ -378,9 +387,7 @@
           </dl>
         </section>
 
-        <button class="primary-button" type="submit">
-          Check eligibility and calculate
-        </button>
+        <button class="primary-button" type="submit">Submit</button>
       </form>
 
       <section
@@ -415,7 +422,7 @@
               <dd id="breakdown-salary"></dd>
             </div>
             <div>
-              <dt>Benefit service</dt>
+              <dt>Creditable years of service</dt>
               <dd id="breakdown-service"></dd>
             </div>
             <div>

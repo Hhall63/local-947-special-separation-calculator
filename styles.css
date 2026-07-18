@@ -254,6 +254,10 @@ select:hover {
 .benefit-totals,
 .calculation-breakdown {
   margin: var(--space-4) 0;
+}
+
+.benefit-totals,
+.calculation-breakdown {
   background: var(--surface);
 }
 

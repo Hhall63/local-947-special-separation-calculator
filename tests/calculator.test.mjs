@@ -332,6 +332,21 @@ test("requires current service for historical sick projection", () => {
   );
 });
 
+test("validation uses creditable-years terminology", () => {
+  const input = validInput();
+  input.benefitService = { mode: undefined };
+  assert.equal(
+    validateInput(input, new Date(2026, 6, 17))["benefit-service-mode"],
+    "Choose calculated or separately entered creditable years of service.",
+  );
+
+  input.benefitService = { mode: "manual", years: 0, months: 0 };
+  assert.equal(
+    validateInput(input, new Date(2026, 6, 17))["benefit-years"],
+    "Enter creditable years of service greater than zero.",
+  );
+});
+
 test("rejects a promotion date on or after retirement", () => {
   const input = validInput();
   input.salary = {

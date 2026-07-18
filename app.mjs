@@ -167,8 +167,7 @@ function populateChoices() {
   for (const [value, details] of Object.entries(RANK_SALARIES)) {
     const option = document.createElement("option");
     option.value = value;
-    option.textContent =
-      details.label + " - " + currency.format(details.salary);
+    option.textContent = details.label;
     rank.append(option);
   }
 

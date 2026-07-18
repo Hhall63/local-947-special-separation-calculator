@@ -433,7 +433,7 @@ export function validateInput(input, today = new Date()) {
     !["calculated", "manual"].includes(input.benefitService.mode)
   ) {
     errors["benefit-service-mode"] =
-      "Choose calculated or separately entered benefit service.";
+      "Choose calculated or separately entered creditable years of service.";
   } else if (input.benefitService.mode === "manual") {
     validateService(
       input.benefitService,
@@ -447,7 +447,7 @@ export function validateInput(input, today = new Date()) {
       toServiceYears(input.benefitService) <= 0
     ) {
       errors["benefit-years"] =
-        "Enter a benefit service value greater than zero.";
+        "Enter creditable years of service greater than zero.";
     }
   }
 
