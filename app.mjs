@@ -265,7 +265,7 @@ function hasAnyError(errors, keys) {
   return Object.keys(errors).some((key) => keys.has(key));
 }
 
-let automaticFailureSignature = "";
+let automaticFailureFocused = false;
 let firstFailedTargetId = null;
 
 const ageErrorKeys = new Set([
@@ -312,7 +312,7 @@ function syncEligibilityGate(
   element("calculate-button").disabled = failed;
 
   if (!failed) {
-    automaticFailureSignature = "";
+    automaticFailureFocused = false;
     firstFailedTargetId = null;
     if (result.dataset.mode === "automatic") {
       result.hidden = true;
@@ -321,9 +321,7 @@ function syncEligibilityGate(
     return;
   }
 
-  const signature = failedChecks.map((check) => check.key).join("|");
-  const shouldFocus =
-    allowFocus && signature !== automaticFailureSignature;
+  const shouldFocus = allowFocus && !automaticFailureFocused;
   firstFailedTargetId = failedChecks[0].targetId;
   renderResult(
     {
@@ -341,7 +339,7 @@ function syncEligibilityGate(
       focus: shouldFocus,
     },
   );
-  if (shouldFocus) automaticFailureSignature = signature;
+  if (shouldFocus) automaticFailureFocused = true;
 }
 
 function renderPreview(announce = false) {
@@ -525,7 +523,7 @@ element("start-over").addEventListener("click", () => {
   clearPreview();
   result.hidden = true;
   result.dataset.mode = "";
-  automaticFailureSignature = "";
+  automaticFailureFocused = false;
   firstFailedTargetId = null;
   setHidden("benefit-service-section", false);
   setHidden("salary-section", false);

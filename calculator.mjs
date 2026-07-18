@@ -485,7 +485,7 @@ export function validateInput(input, today = new Date()) {
   validateService(input.currentGfd, "gfd-years", "gfd-months", errors);
 
   if (input.otherLgers === undefined) {
-    errors["other-lgers"] = "Choose Yes or N/A.";
+    errors["other-lgers"] = "Choose Yes or No.";
   } else if (input.otherLgers !== null) {
     validateService(
       input.otherLgers,

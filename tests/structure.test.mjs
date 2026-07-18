@@ -215,6 +215,7 @@ async function controllerFixture() {
     document,
     form,
     get,
+    setRadio,
     setEligibilityInputs,
     setAllowanceInputs,
     cleanup() {
@@ -248,7 +249,11 @@ test("calculator HTML exposes required form and accessibility hooks", async () =
 
 test("the Local 947 logo path is declared", async () => {
   const html = await readFile(new URL("index.html", rootUrl), "utf8");
-  assert.ok(html.includes('src="assets/local-947-logo.png"'));
+  assert.match(
+    html,
+    /src="assets\/local-947-logo\.png"\s+alt=""/,
+    "The logo repeats the adjacent brand text, so it must be decorative",
+  );
 });
 
 test("browser controller wires validation, calculation, results, and reset", async () => {
@@ -331,6 +336,25 @@ test("automatic eligibility waits for a settled edit before moving focus", async
   gfdYears.focus();
   fixture.form.dispatch("change", gfdYears);
   assert.equal(fixture.document.activeElement, gfdYears);
+});
+
+test("adding a second known failure updates the result without moving focus again", async (t) => {
+  const fixture = await controllerFixture();
+  t.after(fixture.cleanup);
+  fixture.setEligibilityInputs("26");
+  fixture.setRadio("regular-retirement", "no");
+
+  fixture.form.dispatch("change", fixture.get("regular-retirement-group"));
+  assert.equal(fixture.get("result-summary").textContent.startsWith("1 known"), true);
+  assert.equal(fixture.document.activeElement, fixture.get("result-title"));
+
+  fixture.setRadio("continuous-gfd", "no");
+  const continuousGroup = fixture.get("continuous-gfd-group");
+  continuousGroup.focus();
+  fixture.form.dispatch("change", continuousGroup);
+
+  assert.equal(fixture.get("result-summary").textContent.startsWith("2 known"), true);
+  assert.equal(fixture.document.activeElement, continuousGroup);
 });
 
 test("automatic eligibility blocks implicit submission without replacing its result", async (t) => {
@@ -497,6 +521,12 @@ test("uses allowance copy, official guidance, and the approved result order", as
     html.indexOf("Estimated annual allowance") <
       html.indexOf("Estimated total allowance"),
   );
+  assert.ok(
+    normalized.indexOf("Local Governmental Employees") <
+      normalized.indexOf("LGERS"),
+    "The first visible LGERS use must expand the acronym",
+  );
+  assert.doesNotMatch(normalized, /\u00e2\u20ac\u2122/);
   assert.match(
     html,
     /href="https:\/\/www\.myncretirement\.com\/documents\/files\/actives\/lgers-handbook\/open"[^>]*target="_blank"[^>]*rel="noopener"/,

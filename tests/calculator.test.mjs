@@ -346,7 +346,7 @@ test("rejects invalid months and a missing other-service choice", () => {
   const errors = validateInput(input, new Date(2026, 6, 17));
 
   assert.equal(errors["gfd-months"], "Enter a month value from 0 through 11.");
-  assert.equal(errors["other-lgers"], "Choose Yes or N/A.");
+  assert.equal(errors["other-lgers"], "Choose Yes or No.");
 });
 
 test("rejects an implausible age on the retirement date", () => {
