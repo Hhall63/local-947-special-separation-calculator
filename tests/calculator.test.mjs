@@ -15,6 +15,7 @@ import {
   retirementDateForYear,
   sickHoursToServiceMonths,
   toServiceYears,
+  validateInput,
   yearFractionActualActual,
 } from "../calculator.mjs";
 
@@ -266,4 +267,82 @@ test("returns no benefit when the applicant is ineligible", () => {
   assert.equal(estimate.retirementAge, 62);
   assert.equal(estimate.eligibility.eligible, false);
   assert.equal(estimate.benefit, null);
+});
+
+function validInput() {
+  return {
+    retirementYear: 2030,
+    birthMonth: 1,
+    birthYear: 1970,
+    regularServiceRetirement: true,
+    continuousGfd: true,
+    currentGfd: { years: 26, months: 0 },
+    otherLgers: null,
+    sick: { mode: "retirement", hours: 0 },
+    benefitService: { mode: "calculated" },
+    salary: { mode: "anticipated", amount: 100000 },
+  };
+}
+
+test("accepts a complete valid input", () => {
+  assert.deepEqual(
+    validateInput(validInput(), new Date(2026, 6, 17)),
+    {},
+  );
+});
+
+test("rejects a retirement date that is not in the future", () => {
+  const input = validInput();
+  input.retirementYear = 2026;
+
+  assert.equal(
+    validateInput(input, new Date(2026, 6, 17))["retirement-year"],
+    "Choose a retirement year whose January 31 date is in the future.",
+  );
+});
+
+test("rejects invalid months and a missing other-service choice", () => {
+  const input = validInput();
+  input.currentGfd.months = 12;
+  input.otherLgers = undefined;
+  const errors = validateInput(input, new Date(2026, 6, 17));
+
+  assert.equal(errors["gfd-months"], "Enter a month value from 0 through 11.");
+  assert.equal(errors["other-lgers"], "Choose Yes or N/A.");
+});
+
+test("rejects an implausible age on the retirement date", () => {
+  const input = validInput();
+  input.birthYear = 2020;
+
+  assert.equal(
+    validateInput(input, new Date(2026, 6, 17))["birth-year"],
+    "Enter a birth year that gives a retirement age from 18 through 100.",
+  );
+});
+
+test("requires current service for historical sick projection", () => {
+  const input = validInput();
+  input.currentGfd = { years: 0, months: 0 };
+  input.sick = { mode: "current", hours: 100 };
+
+  assert.equal(
+    validateInput(input, new Date(2026, 6, 17))["sick-hours"],
+    "Enter current GFD or other LGERS service to project current sick hours.",
+  );
+});
+
+test("rejects a promotion date on or after retirement", () => {
+  const input = validInput();
+  input.salary = {
+    mode: "rank",
+    rank: "captain",
+    promotionMonth: 2,
+    promotionYear: 2030,
+  };
+
+  assert.equal(
+    validateInput(input, new Date(2026, 6, 17))["promotion-year"],
+    "Enter a promotion month and year before retirement.",
+  );
 });

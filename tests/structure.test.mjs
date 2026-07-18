@@ -31,3 +31,18 @@ test("the Local 947 logo path is declared", async () => {
   const html = await readFile(new URL("index.html", rootUrl), "utf8");
   assert.ok(html.includes('src="assets/local-947-logo.png"'));
 });
+
+test("browser controller wires validation, calculation, results, and reset", async () => {
+  const app = await readFile(new URL("app.mjs", rootUrl), "utf8");
+
+  for (const fragment of [
+    "validateInput",
+    "calculateEstimate",
+    "updateConditionalFields",
+    "renderPreview",
+    "renderResult",
+    'element("start-over")',
+  ]) {
+    assert.ok(app.includes(fragment), "Missing controller hook: " + fragment);
+  }
+});

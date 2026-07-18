@@ -325,3 +325,179 @@ export function calculateEstimate(input, today = new Date()) {
       : null,
   };
 }
+
+function isNonnegativeWhole(value) {
+  return Number.isInteger(value) && value >= 0;
+}
+
+function validateService(value, yearsKey, monthsKey, errors) {
+  if (!value || !isNonnegativeWhole(value.years)) {
+    errors[yearsKey] = "Enter a nonnegative whole number of years.";
+  }
+  if (!value || !isNonnegativeWhole(value.months) || value.months > 11) {
+    errors[monthsKey] = "Enter a month value from 0 through 11.";
+  }
+}
+
+export function validateInput(input, today = new Date()) {
+  const errors = {};
+  const currentYear = today.getFullYear();
+  let retirementDate = null;
+
+  if (
+    !Number.isInteger(input.retirementYear) ||
+    input.retirementYear < currentYear ||
+    input.retirementYear > currentYear + 100
+  ) {
+    errors["retirement-year"] = "Enter a four-digit retirement year.";
+  } else {
+    retirementDate = retirementDateForYear(input.retirementYear);
+    if (dateNumber(retirementDate) <= dateNumber(today)) {
+      errors["retirement-year"] =
+        "Choose a retirement year whose January 31 date is in the future.";
+    }
+  }
+
+  if (
+    !Number.isInteger(input.birthMonth) ||
+    input.birthMonth < 1 ||
+    input.birthMonth > 12
+  ) {
+    errors["birth-month"] = "Choose your birth month.";
+  }
+  if (
+    !Number.isInteger(input.birthYear) ||
+    input.birthYear < 1900 ||
+    input.birthYear > currentYear
+  ) {
+    errors["birth-year"] = "Enter a valid four-digit birth year.";
+  } else if (
+    retirementDate &&
+    Number.isInteger(input.birthMonth) &&
+    input.birthMonth >= 1 &&
+    input.birthMonth <= 12
+  ) {
+    const age = ageAtRetirement({
+      birthYear: input.birthYear,
+      birthMonth: input.birthMonth,
+      retirementYear: input.retirementYear,
+    });
+    if (age < 18 || age > 100) {
+      errors["birth-year"] =
+        "Enter a birth year that gives a retirement age from 18 through 100.";
+    }
+  }
+  if (input.regularServiceRetirement === undefined) {
+    errors["regular-retirement"] = "Choose Yes or No.";
+  }
+  if (input.continuousGfd === undefined) {
+    errors["continuous-gfd"] = "Choose Yes or No.";
+  }
+
+  validateService(input.currentGfd, "gfd-years", "gfd-months", errors);
+
+  if (input.otherLgers === undefined) {
+    errors["other-lgers"] = "Choose Yes or N/A.";
+  } else if (input.otherLgers !== null) {
+    validateService(
+      input.otherLgers,
+      "other-years",
+      "other-months",
+      errors,
+    );
+  }
+
+  if (!input.sick || !["current", "retirement"].includes(input.sick.mode)) {
+    errors["sick-mode"] = "Choose current or retirement sick hours.";
+  } else if (!Number.isFinite(input.sick.hours) || input.sick.hours < 0) {
+    errors["sick-hours"] = "Enter nonnegative sick hours.";
+  } else if (
+    input.sick.mode === "current" &&
+    input.currentGfd &&
+    isNonnegativeWhole(input.currentGfd.years) &&
+    isNonnegativeWhole(input.currentGfd.months)
+  ) {
+    const currentWorkedYears =
+      toServiceYears(input.currentGfd) +
+      (input.otherLgers && input.otherLgers !== undefined
+        ? toServiceYears(input.otherLgers)
+        : 0);
+    if (currentWorkedYears <= 0) {
+      errors["sick-hours"] =
+        "Enter current GFD or other LGERS service to project current sick hours.";
+    }
+  }
+
+  if (
+    !input.benefitService ||
+    !["calculated", "manual"].includes(input.benefitService.mode)
+  ) {
+    errors["benefit-service-mode"] =
+      "Choose calculated or separately entered benefit service.";
+  } else if (input.benefitService.mode === "manual") {
+    validateService(
+      input.benefitService,
+      "benefit-years",
+      "benefit-months",
+      errors,
+    );
+    if (
+      !errors["benefit-years"] &&
+      !errors["benefit-months"] &&
+      toServiceYears(input.benefitService) <= 0
+    ) {
+      errors["benefit-years"] =
+        "Enter a benefit service value greater than zero.";
+    }
+  }
+
+  if (
+    !input.salary ||
+    !["anticipated", "current", "rank"].includes(input.salary.mode)
+  ) {
+    errors["salary-mode"] = "Choose a salary estimate method.";
+  } else if (
+    input.salary.mode === "anticipated" ||
+    input.salary.mode === "current"
+  ) {
+    const field =
+      input.salary.mode === "anticipated"
+        ? "anticipated-salary"
+        : "current-salary";
+    if (!Number.isFinite(input.salary.amount) || input.salary.amount <= 0) {
+      errors[field] = "Enter an annual salary greater than zero.";
+    }
+  } else {
+    if (!RANK_SALARIES[input.salary.rank]) {
+      errors.rank = "Choose a retirement rank.";
+    }
+    if (
+      !Number.isInteger(input.salary.promotionMonth) ||
+      input.salary.promotionMonth < 1 ||
+      input.salary.promotionMonth > 12
+    ) {
+      errors["promotion-month"] = "Choose a promotion month.";
+    }
+    if (
+      !Number.isInteger(input.salary.promotionYear) ||
+      input.salary.promotionYear < 1900
+    ) {
+      errors["promotion-year"] = "Enter a four-digit promotion year.";
+    } else if (
+      retirementDate &&
+      Number.isInteger(input.salary.promotionMonth) &&
+      dateNumber(
+        new Date(
+          input.salary.promotionYear,
+          input.salary.promotionMonth - 1,
+          1,
+        ),
+      ) >= dateNumber(retirementDate)
+    ) {
+      errors["promotion-year"] =
+        "Enter a promotion month and year before retirement.";
+    }
+  }
+
+  return errors;
+}
