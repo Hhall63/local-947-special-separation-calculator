@@ -465,3 +465,33 @@ test("resolves service-only unreduced boundaries without age", () => {
   assert.equal(ageDependent.passed, null);
   assert.equal(ageDependent.actual, null);
 });
+
+test("does not round a failing GFD share up to 50 percent", () => {
+  const result = evaluateEligibility({
+    projectedGfdYears: 12.49,
+    eligibilityServiceYears: 25,
+  });
+  const share = result.checks.find((check) => check.key === "gfd-share");
+
+  assert.equal(share.passed, false);
+  assert.equal(share.actual, "49.9%");
+});
+
+test("does not round 29.99 service years up to 30 years", () => {
+  const result = evaluateEligibility({
+    retirementAge: 59,
+    eligibilityServiceYears: 29.99,
+  });
+  const unreduced = result.checks.find((check) => check.key === "unreduced");
+
+  assert.equal(unreduced.passed, false);
+  assert.equal(unreduced.actual, "29 years, 11 months at age 59");
+});
+
+test("does not round 24.99 service years up to 25 years", () => {
+  const result = evaluateEligibility({ eligibilityServiceYears: 24.99 });
+  const unreduced = result.checks.find((check) => check.key === "unreduced");
+
+  assert.equal(unreduced.passed, false);
+  assert.equal(unreduced.actual, "24 years, 11 months");
+});

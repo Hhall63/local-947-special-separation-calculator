@@ -96,7 +96,10 @@ export function ageAtRetirement({
 }
 
 function serviceText(years) {
-  const totalMonths = Math.round(years * 12);
+  const months = years * 12;
+  const totalMonths = Math.floor(
+    months + Number.EPSILON * Math.abs(months),
+  );
   const wholeYears = Math.floor(totalMonths / 12);
   const monthsOnly = totalMonths % 12;
   return wholeYears + " years, " + monthsOnly + " months";
@@ -177,7 +180,13 @@ export function evaluateEligibility({
       key: "gfd-share",
       label: "Sworn GFD share of total creditable service",
       passed: gfdShare === null ? null : gfdShare >= 0.5,
-      actual: gfdShare === null ? null : (gfdShare * 100).toFixed(1) + "%",
+      actual:
+        gfdShare === null
+          ? null
+          : (gfdShare < 0.5
+              ? Math.floor(gfdShare * 1000) / 10
+              : gfdShare * 100
+            ).toFixed(1) + "%",
       requirement: "At least 50%",
       targetId: "gfd-years",
     },
