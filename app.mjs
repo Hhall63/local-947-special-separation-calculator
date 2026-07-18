@@ -266,7 +266,7 @@ function hasAnyError(errors, keys) {
 }
 
 let automaticFailureSignature = "";
-let firstFailedTargetId = "retirement-year";
+let firstFailedTargetId = null;
 
 const ageErrorKeys = new Set([
   "retirement-year",
@@ -295,7 +295,12 @@ function buildEligibilityPreview(input, errors, service) {
   };
 }
 
-function syncEligibilityGate(eligibility, service, retirementAge) {
+function syncEligibilityGate(
+  eligibility,
+  service,
+  retirementAge,
+  allowFocus,
+) {
   const failedChecks = eligibility.checks.filter(
     (check) => check.passed === false,
   );
@@ -304,9 +309,11 @@ function syncEligibilityGate(eligibility, service, retirementAge) {
   setHidden("benefit-service-section", failed);
   setHidden("salary-section", failed);
   setHidden("calculate-button", failed);
+  element("calculate-button").disabled = failed;
 
   if (!failed) {
     automaticFailureSignature = "";
+    firstFailedTargetId = null;
     if (result.dataset.mode === "automatic") {
       result.hidden = true;
       result.dataset.mode = "";
@@ -315,6 +322,8 @@ function syncEligibilityGate(eligibility, service, retirementAge) {
   }
 
   const signature = failedChecks.map((check) => check.key).join("|");
+  const shouldFocus =
+    allowFocus && signature !== automaticFailureSignature;
   firstFailedTargetId = failedChecks[0].targetId;
   renderResult(
     {
@@ -329,13 +338,17 @@ function syncEligibilityGate(eligibility, service, retirementAge) {
     },
     {
       automatic: true,
-      focus: signature !== automaticFailureSignature,
+      focus: shouldFocus,
     },
   );
-  automaticFailureSignature = signature;
+  if (shouldFocus) automaticFailureSignature = signature;
 }
 
 function renderPreview(announce = false) {
+  if (result.dataset.mode === "submitted") {
+    result.hidden = true;
+    result.dataset.mode = "";
+  }
   updateConditionalFields();
   const input = collectInput();
   const errors = validateInput(input);
@@ -347,6 +360,7 @@ function renderPreview(announce = false) {
     preview.eligibility,
     service,
     preview.retirementAge,
+    announce,
   );
 
   element("projected-sick-hours").textContent = service
@@ -481,6 +495,8 @@ form.addEventListener("input", () => renderPreview(false));
 form.addEventListener("change", () => renderPreview(true));
 form.addEventListener("submit", (event) => {
   event.preventDefault();
+  if (element("calculate-button").disabled) return;
+
   const input = collectInput();
   const errors = validateInput(input);
 
@@ -496,7 +512,7 @@ form.addEventListener("submit", (event) => {
 
 element("edit-answers").addEventListener("click", () => {
   result.hidden = true;
-  const target = element(firstFailedTargetId);
+  const target = element(firstFailedTargetId ?? "retirement-year");
   const control = target.matches("input, select, button")
     ? target
     : target.querySelector("input, select, button") ?? target;
@@ -508,10 +524,13 @@ element("start-over").addEventListener("click", () => {
   clearErrors();
   clearPreview();
   result.hidden = true;
+  result.dataset.mode = "";
   automaticFailureSignature = "";
+  firstFailedTargetId = null;
   setHidden("benefit-service-section", false);
   setHidden("salary-section", false);
   setHidden("calculate-button", false);
+  element("calculate-button").disabled = false;
   updateConditionalFields();
   element("retirement-year").focus();
 });
