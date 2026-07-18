@@ -444,3 +444,24 @@ test("returns actual and required evidence for complete eligibility", () => {
     "30 years, 0 months at age 60",
   );
 });
+
+test("passes unreduced retirement at 30 years without age", () => {
+  const result = evaluateEligibility({ eligibilityServiceYears: 30 });
+  const unreduced = result.checks.find((check) => check.key === "unreduced");
+
+  assert.equal(unreduced.passed, true);
+  assert.equal(unreduced.actual, "30 years, 0 months");
+});
+
+test("resolves service-only unreduced boundaries without age", () => {
+  const belowMinimum = evaluateEligibility({
+    eligibilityServiceYears: 24 + 11 / 12,
+  }).checks.find((check) => check.key === "unreduced");
+  const ageDependent = evaluateEligibility({ eligibilityServiceYears: 25 })
+    .checks.find((check) => check.key === "unreduced");
+
+  assert.equal(belowMinimum.passed, false);
+  assert.equal(belowMinimum.actual, "24 years, 11 months");
+  assert.equal(ageDependent.passed, null);
+  assert.equal(ageDependent.actual, null);
+});

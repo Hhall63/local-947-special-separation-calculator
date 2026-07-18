@@ -117,10 +117,15 @@ export function evaluateEligibility({
       ? projectedGfdYears / eligibilityServiceYears
       : null;
   const unreduced =
-    hasAge && hasEligibilityService
-      ? eligibilityServiceYears >= 30 ||
-        (retirementAge >= 60 && eligibilityServiceYears >= 25)
-      : null;
+    !hasEligibilityService
+      ? null
+      : eligibilityServiceYears >= 30
+        ? true
+        : eligibilityServiceYears < 25
+          ? false
+          : hasAge
+            ? retirementAge >= 60
+            : null;
   const continuousPassed =
     continuousGfd === false
       ? false
@@ -183,7 +188,8 @@ export function evaluateEligibility({
       actual:
         unreduced === null
           ? null
-          : serviceText(eligibilityServiceYears) + " at age " + retirementAge,
+          : serviceText(eligibilityServiceYears) +
+            (hasAge ? " at age " + retirementAge : ""),
       requirement: "30 years, or age 60 with at least 25 years",
       targetId: "gfd-years",
     },
