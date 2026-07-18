@@ -93,7 +93,12 @@ async function controllerFixture() {
       this.children.push(child);
     }
 
-    remove() {}
+    remove() {
+      created.splice(created.indexOf(this), 1);
+      for (const item of created) {
+        item.children = item.children.filter((child) => child !== this);
+      }
+    }
 
     addEventListener(type, listener) {
       const listeners = this.listeners.get(type) ?? [];
@@ -135,6 +140,7 @@ async function controllerFixture() {
       const radio = new FakeElement("", "input");
       radio.name = name;
       radio.value = value;
+      radio.defaultValue = value;
       radios.push(radio);
       group.append(radio);
     }
@@ -257,35 +263,152 @@ test("top and bottom Clear all fields controls share the complete reset", async 
   const html = await readFile(new URL("index.html", rootUrl), "utf8");
   assert.doesNotMatch(html, /A private, plain-language estimate\./);
   assert.match(html, /Your entries stay in this browser\./);
-  assert.match(html, /id="clear-form-top"[\s\S]*Clear all fields/);
-  assert.match(
-    html,
-    /id="calculate-button"[\s\S]*id="clear-form-bottom"[\s\S]*Clear all fields/,
+  const requiredFieldsIndex = html.indexOf(
+    "All questions currently shown are required.",
   );
+  const topClearIndex = html.indexOf('id="clear-form-top"');
+  const errorSummaryIndex = html.indexOf('id="error-summary"');
+  assert.ok(requiredFieldsIndex >= 0);
+  assert.ok(requiredFieldsIndex < topClearIndex);
+  assert.ok(topClearIndex < errorSummaryIndex);
+  assert.match(
+    html.slice(topClearIndex, errorSummaryIndex),
+    /id="clear-form-top"[\s\S]*Clear all fields/,
+  );
+
+  const formActions = html.match(
+    /<div class="form-actions">([\s\S]*?)<\/div>/,
+  )?.[1];
+  assert.ok(formActions);
+  assert.match(formActions, /id="calculate-button"/);
+  assert.match(formActions, /id="clear-form-bottom"[\s\S]*Clear all fields/);
 
   const fixture = await controllerFixture();
   t.after(fixture.cleanup);
 
+  const previewIds = [
+    "projected-sick-hours",
+    "sick-service",
+    "projected-gfd-service",
+    "eligibility-service",
+    "benefit-service-value",
+    "projected-salary",
+  ];
+  const monthDefaults = ["gfd-months", "other-months", "benefit-months"];
+  const emptyDefaults = [
+    "retirement-year",
+    "birth-month",
+    "birth-year",
+    "gfd-years",
+    "other-years",
+    "sick-hours",
+    "benefit-years",
+    "anticipated-salary",
+    "current-salary",
+    "rank",
+    "promotion-month",
+    "promotion-year",
+  ];
+  const radioGroups = [
+    "regular-retirement-group",
+    "continuous-gfd-group",
+    "other-lgers-group",
+    "sick-mode-group",
+    "benefit-service-mode-group",
+    "salary-mode-group",
+  ];
+
   for (const id of ["clear-form-top", "clear-form-bottom"]) {
+    fixture.get("start-over").dispatch("click");
+    fixture.form.dispatch("submit");
+
     fixture.setEligibilityInputs("1");
-    fixture.get("result").hidden = false;
-    fixture.get("result").dataset.mode = "automatic";
-    fixture.get("benefit-service-section").hidden = true;
-    fixture.get("salary-section").hidden = true;
-    fixture.get("calculate-button").hidden = true;
-    fixture.get("calculate-button").disabled = true;
+    fixture.setAllowanceInputs();
+    fixture.form.dispatch("change", fixture.get("gfd-years"));
+    for (const [fieldId, value] of Object.entries({
+      "gfd-months": "7",
+      "other-years": "1",
+      "other-months": "8",
+      "sick-hours": "20",
+      "benefit-years": "2",
+      "benefit-months": "9",
+      "anticipated-salary": "100000",
+      "current-salary": "90000",
+      rank: "firefighter",
+      "promotion-month": "6",
+      "promotion-year": "2025",
+    })) {
+      fixture.get(fieldId).value = value;
+    }
+
+    assert.equal(fixture.get("error-summary").hidden, false);
+    assert.ok(fixture.get("error-list").children.length > 0);
+    assert.ok(fixture.document.querySelectorAll(".field-error").length > 0);
+    assert.ok(fixture.document.querySelectorAll("[aria-invalid]").length > 0);
+    for (const previewId of previewIds) {
+      assert.notEqual(fixture.get(previewId).textContent, "-", previewId);
+    }
+    assert.notEqual(fixture.get("preview-status").textContent, "");
+    assert.equal(fixture.get("result").hidden, false);
+    assert.equal(fixture.get("result").dataset.mode, "automatic");
+    assert.notEqual(fixture.get("result-title").textContent, "");
+    assert.notEqual(fixture.get("result-summary").textContent, "");
+    assert.ok(fixture.get("requirements-results").children.length > 0);
+    assert.equal(fixture.get("other-service-fields").hidden, true);
+    assert.equal(fixture.get("manual-service-fields").hidden, true);
+    assert.equal(fixture.get("anticipated-salary-field").hidden, false);
+    assert.equal(fixture.get("benefit-service-section").hidden, true);
+    assert.equal(fixture.get("salary-section").hidden, true);
+    assert.equal(fixture.get("calculate-button").hidden, true);
+    assert.equal(fixture.get("calculate-button").disabled, true);
+    assert.equal(fixture.document.activeElement, fixture.get("result-title"));
 
     fixture.get(id).dispatch("click");
 
-    assert.equal(fixture.get("retirement-year").value, "");
-    assert.equal(fixture.get("gfd-months").value, "0");
+    assert.equal(fixture.get("error-summary").hidden, true);
+    assert.equal(fixture.get("error-list").children.length, 0);
+    assert.equal(fixture.document.querySelectorAll(".field-error").length, 0);
+    assert.equal(fixture.document.querySelectorAll("[aria-invalid]").length, 0);
+    for (const previewId of previewIds) {
+      assert.equal(fixture.get(previewId).textContent, "-");
+    }
+    assert.equal(fixture.get("preview-status").textContent, "");
     assert.equal(fixture.get("result").hidden, true);
     assert.equal(fixture.get("result").dataset.mode, "");
     assert.equal(fixture.get("benefit-service-section").hidden, false);
     assert.equal(fixture.get("salary-section").hidden, false);
+    assert.equal(fixture.get("other-service-fields").hidden, true);
+    assert.equal(fixture.get("manual-service-fields").hidden, true);
+    assert.equal(fixture.get("anticipated-salary-field").hidden, true);
+    assert.equal(fixture.get("current-salary-field").hidden, true);
+    assert.equal(fixture.get("rank-fields").hidden, true);
     assert.equal(fixture.get("calculate-button").hidden, false);
     assert.equal(fixture.get("calculate-button").disabled, false);
+    assert.equal(fixture.get("sick-hours-label").textContent, "Sick hours");
+    for (const fieldId of monthDefaults) {
+      assert.equal(fixture.get(fieldId).value, "0");
+    }
+    for (const fieldId of emptyDefaults) {
+      assert.equal(fixture.get(fieldId).value, "");
+    }
+    for (const groupId of radioGroups) {
+      assert.ok(
+        fixture.get(groupId).children.every((control) => !control.checked),
+      );
+    }
     assert.equal(fixture.document.activeElement, fixture.get("retirement-year"));
+
+    fixture.setEligibilityInputs("26");
+    fixture.setAllowanceInputs();
+    fixture.form.dispatch("submit");
+    fixture.get("edit-answers").dispatch("click");
+    assert.equal(fixture.document.activeElement, fixture.get("retirement-year"));
+
+    const gfdYears = fixture.get("gfd-years");
+    gfdYears.value = "1";
+    gfdYears.focus();
+    fixture.form.dispatch("change", gfdYears);
+    assert.equal(fixture.document.activeElement, fixture.get("result-title"));
   }
 });
 
