@@ -612,7 +612,7 @@ test("uses allowance copy, official guidance, and the approved result order", as
   assert.doesNotMatch(normalized, /\u00e2\u20ac\u2122/);
   assert.match(
     html,
-    /href="https:\/\/www\.myncretirement\.com\/documents\/files\/actives\/lgers-handbook\/open"[^>]*target="_blank"[^>]*rel="noopener"/,
+    /href="https:\/\/www\.myncretirement\.gov\/systems-funds\/local-governmental-employees-retirement-system-lgers\/lgers-handbook"[^>]*target="_blank"[^>]*rel="noopener"/,
   );
   assert.doesNotMatch(
     normalized,
