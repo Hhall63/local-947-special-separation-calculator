@@ -72,6 +72,27 @@ test("browser controller supports independent service and salary previews", asyn
   }
 });
 
+test("controller gates allowance inputs and renders eligibility evidence", async () => {
+  const app = await readFile(new URL("app.mjs", rootUrl), "utf8");
+
+  for (const fragment of [
+    "evaluateEligibility",
+    "buildEligibilityPreview",
+    "syncEligibilityGate",
+    'setHidden("benefit-service-section"',
+    'setHidden("salary-section"',
+    'setHidden("calculate-button"',
+    "check.actual",
+    "check.requirement",
+    'element("edit-answers")',
+    'element("result-title").focus()',
+    'element("preview-status")',
+    'otherMode === "no"',
+  ]) {
+    assert.ok(app.includes(fragment), "Missing eligibility gate hook: " + fragment);
+  }
+});
+
 test("uses approved creditable-service copy and defaults", async () => {
   const html = await readFile(new URL("index.html", rootUrl), "utf8");
   const normalizedHtml = html.replace(/\s+/g, " ");

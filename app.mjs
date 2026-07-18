@@ -1,8 +1,11 @@
 import {
   RANK_SALARIES,
+  ageAtRetirement,
   calculateEstimate,
   calculateRetirementSalary,
   calculateService,
+  evaluateEligibility,
+  formatServiceYears,
   toServiceYears,
   validateInput,
 } from "./calculator.mjs";
@@ -139,7 +142,7 @@ function collectInput() {
     otherLgers:
       otherMode === "yes"
         ? serviceValue("other-years", "other-months")
-        : otherMode === "na"
+        : otherMode === "no"
           ? null
           : undefined,
     sick: { mode: sickMode, hours: numberValue("sick-hours") },
@@ -179,13 +182,6 @@ function updateConditionalFields() {
         : "Sick hours";
 }
 
-function serviceText(years) {
-  const totalMonths = Math.round(years * 12);
-  const wholeYears = Math.floor(totalMonths / 12);
-  const monthsOnly = totalMonths % 12;
-  return wholeYears + " years, " + monthsOnly + " months";
-}
-
 function populateChoices() {
   const rank = element("rank");
   for (const [value, details] of Object.entries(RANK_SALARIES)) {
@@ -222,17 +218,20 @@ function showErrors(errors) {
   for (const [key, message] of entries) {
     const targetId = errorTargets[key] ?? key;
     const target = element(targetId);
-    const control = target.matches("input, select, button")
-      ? target
-      : target.querySelector("input, select, button") ?? target;
+    const controls = target.matches("input, select, button")
+      ? [target]
+      : [...target.querySelectorAll("input, select, button")];
+    const control = controls[0] ?? target;
     const errorId = targetId + "-error";
     const error = document.createElement("p");
     error.id = errorId;
     error.className = "field-error";
     error.textContent = message;
     target.insertAdjacentElement("afterend", error);
-    control.setAttribute("aria-invalid", "true");
-    control.setAttribute("aria-describedby", errorId);
+    for (const itemControl of controls) {
+      itemControl.setAttribute("aria-invalid", "true");
+      itemControl.setAttribute("aria-describedby", errorId);
+    }
 
     const item = document.createElement("li");
     const link = document.createElement("a");
@@ -266,25 +265,101 @@ function hasAnyError(errors, keys) {
   return Object.keys(errors).some((key) => keys.has(key));
 }
 
-function renderPreview() {
+let automaticFailureSignature = "";
+let firstFailedTargetId = "retirement-year";
+
+const ageErrorKeys = new Set([
+  "retirement-year",
+  "birth-month",
+  "birth-year",
+]);
+
+function buildEligibilityPreview(input, errors, service) {
+  const retirementAge = hasAnyError(errors, ageErrorKeys)
+    ? undefined
+    : ageAtRetirement({
+        birthYear: input.birthYear,
+        birthMonth: input.birthMonth,
+        retirementYear: input.retirementYear,
+      });
+
+  return {
+    retirementAge,
+    eligibility: evaluateEligibility({
+      retirementAge,
+      regularServiceRetirement: input.regularServiceRetirement,
+      continuousGfd: input.continuousGfd,
+      projectedGfdYears: service?.projectedGfdYears,
+      eligibilityServiceYears: service?.eligibilityServiceYears,
+    }),
+  };
+}
+
+function syncEligibilityGate(eligibility, service, retirementAge) {
+  const failedChecks = eligibility.checks.filter(
+    (check) => check.passed === false,
+  );
+  const failed = failedChecks.length > 0;
+
+  setHidden("benefit-service-section", failed);
+  setHidden("salary-section", failed);
+  setHidden("calculate-button", failed);
+
+  if (!failed) {
+    automaticFailureSignature = "";
+    if (result.dataset.mode === "automatic") {
+      result.hidden = true;
+      result.dataset.mode = "";
+    }
+    return;
+  }
+
+  const signature = failedChecks.map((check) => check.key).join("|");
+  firstFailedTargetId = failedChecks[0].targetId;
+  renderResult(
+    {
+      eligibility: {
+        ...eligibility,
+        eligible: false,
+        checks: eligibility.checks.filter((check) => check.passed !== null),
+      },
+      service,
+      retirementAge,
+      benefit: null,
+    },
+    {
+      automatic: true,
+      focus: signature !== automaticFailureSignature,
+    },
+  );
+  automaticFailureSignature = signature;
+}
+
+function renderPreview(announce = false) {
   updateConditionalFields();
   const input = collectInput();
   const errors = validateInput(input);
   const service = hasAnyError(errors, serviceErrorKeys)
     ? null
     : calculateService(input);
+  const preview = buildEligibilityPreview(input, errors, service);
+  syncEligibilityGate(
+    preview.eligibility,
+    service,
+    preview.retirementAge,
+  );
 
   element("projected-sick-hours").textContent = service
     ? Math.round(service.retirementSickHours).toLocaleString() + " hours"
     : "-";
   element("sick-service").textContent = service
-    ? serviceText(service.sickServiceYears)
+    ? formatServiceYears(service.sickServiceYears)
     : "-";
   element("projected-gfd-service").textContent = service
-    ? serviceText(service.projectedGfdYears)
+    ? formatServiceYears(service.projectedGfdYears)
     : "-";
   element("eligibility-service").textContent = service
-    ? serviceText(service.eligibilityServiceYears)
+    ? formatServiceYears(service.eligibilityServiceYears)
     : "-";
 
   let creditableYears = null;
@@ -301,7 +376,7 @@ function renderPreview() {
     creditableYears = service.eligibilityServiceYears;
   }
   element("benefit-service-value").textContent =
-    creditableYears === null ? "-" : serviceText(creditableYears);
+    creditableYears === null ? "-" : formatServiceYears(creditableYears);
 
   element("projected-salary").textContent = hasAnyError(
     errors,
@@ -309,27 +384,44 @@ function renderPreview() {
   )
     ? "-"
     : currency.format(calculateRetirementSalary(input));
+
+  if (announce) {
+    const updated = [];
+    if (service) updated.push("service");
+    if (creditableYears !== null) updated.push("creditable service");
+    if (!hasAnyError(errors, salaryErrorKeys)) updated.push("salary");
+    element("preview-status").textContent = updated.length
+      ? "Updated " + updated.join(", ") + " estimates."
+      : "";
+  }
 }
 
-function renderResult(estimate) {
-  result.classList.toggle(
-    "result--eligible",
-    estimate.eligibility.eligible,
-  );
-  result.classList.toggle(
-    "result--ineligible",
-    !estimate.eligibility.eligible,
-  );
-  element("result-title").textContent = estimate.eligibility.eligible
-    ? "You appear eligible"
-    : "You do not appear eligible";
-  element("result-summary").textContent = estimate.eligibility.eligible
-    ? "All listed eligibility requirements passed."
-    : "One or more eligibility requirements did not pass.";
+function renderResult(estimate, { automatic = false, focus = true } = {}) {
+  const eligible = estimate.eligibility.eligible;
+  result.classList.toggle("result--eligible", eligible);
+  result.classList.toggle("result--ineligible", !eligible);
+  result.dataset.mode = automatic ? "automatic" : "submitted";
 
+  element("result-title").textContent = eligible
+    ? "You appear eligible for the allowance"
+    : "You do not appear eligible for the allowance";
+
+  const failedCount = estimate.eligibility.checks.filter(
+    (check) => check.passed === false,
+  ).length;
+  element("result-summary").textContent = eligible
+    ? "Your entries pass every listed eligibility requirement."
+    : failedCount +
+      " known eligibility requirement" +
+      (failedCount === 1 ? " did" : "s did") +
+      " not pass. Change your answers if any entry is incorrect.";
+
+  const checks = [...estimate.eligibility.checks].sort(
+    (left, right) => Number(left.passed) - Number(right.passed),
+  );
   const list = element("requirements-results");
   list.replaceChildren();
-  for (const check of estimate.eligibility.checks) {
+  for (const check of checks) {
     const item = document.createElement("li");
     item.className = check.passed
       ? "status status--pass"
@@ -338,36 +430,55 @@ function renderResult(estimate) {
     icon.className = "status-icon";
     icon.setAttribute("aria-hidden", "true");
     icon.textContent = check.passed ? "✓" : "×";
-    item.append(icon, document.createTextNode(check.label));
+    const copy = document.createElement("span");
+    copy.className = "status-copy";
+    const label = document.createElement("strong");
+    label.textContent = check.label + (check.passed ? " — passed" : " — failed");
+    const evidence = document.createElement("span");
+    evidence.className = "status-evidence";
+    evidence.textContent =
+      "Your result: " + check.actual + ". Requirement: " + check.requirement + ".";
+    copy.append(label, evidence);
+    item.append(icon, copy);
     list.append(item);
   }
 
-  benefitResults.hidden = !estimate.eligibility.eligible;
+  benefitResults.hidden = !eligible;
   if (estimate.benefit) {
-    element("annual-benefit").textContent = currency.format(
-      estimate.benefit.annual,
-    );
     element("biweekly-benefit").textContent = currency.format(
       estimate.benefit.biweekly,
+    );
+    element("annual-benefit").textContent = currency.format(
+      estimate.benefit.annual,
     );
     element("total-benefit").textContent = currency.format(
       estimate.benefit.total,
     );
+    element("allowance-coverage").textContent =
+      "Covers " +
+      estimate.coveredMonths +
+      " months, from February " +
+      estimate.coverage.startYear +
+      " through the end of " +
+      months[estimate.coverage.endMonth - 1] +
+      " " +
+      estimate.coverage.endYear +
+      ".";
     element("breakdown-salary").textContent = currency.format(
       estimate.retirementSalary,
     );
-    element("breakdown-service").textContent = serviceText(
+    element("breakdown-service").textContent = formatServiceYears(
       estimate.service.benefitServiceYears,
     );
     element("breakdown-months").textContent = String(estimate.coveredMonths);
   }
 
   result.hidden = false;
-  result.focus();
+  if (focus) element("result-title").focus();
 }
 
-form.addEventListener("input", renderPreview);
-form.addEventListener("change", renderPreview);
+form.addEventListener("input", () => renderPreview(false));
+form.addEventListener("change", () => renderPreview(true));
 form.addEventListener("submit", (event) => {
   event.preventDefault();
   const input = collectInput();
@@ -383,11 +494,24 @@ form.addEventListener("submit", (event) => {
   renderResult(calculateEstimate(input));
 });
 
+element("edit-answers").addEventListener("click", () => {
+  result.hidden = true;
+  const target = element(firstFailedTargetId);
+  const control = target.matches("input, select, button")
+    ? target
+    : target.querySelector("input, select, button") ?? target;
+  control.focus();
+});
+
 element("start-over").addEventListener("click", () => {
   form.reset();
   clearErrors();
   clearPreview();
   result.hidden = true;
+  automaticFailureSignature = "";
+  setHidden("benefit-service-section", false);
+  setHidden("salary-section", false);
+  setHidden("calculate-button", false);
   updateConditionalFields();
   element("retirement-year").focus();
 });

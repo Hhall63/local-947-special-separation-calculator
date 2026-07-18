@@ -11,6 +11,7 @@ import {
   countJulyRaises,
   coveredBenefitMonths,
   evaluateEligibility,
+  formatServiceYears,
   projectService,
   projectSalary,
   projectSickHours,
@@ -23,6 +24,10 @@ import {
 
 test("converts separate years and months to decimal years", () => {
   assert.equal(toServiceYears({ years: 12, months: 6 }), 12.5);
+});
+
+test("formats completed service months without rounding up", () => {
+  assert.equal(formatServiceYears(29.99), "29 years, 11 months");
 });
 
 test("matches Microsoft's YEARFRAC Actual/Actual leap-year example", () => {
@@ -494,4 +499,30 @@ test("does not round 24.99 service years up to 25 years", () => {
 
   assert.equal(unreduced.passed, false);
   assert.equal(unreduced.actual, "24 years, 11 months");
+});
+
+test("returns the allowance coverage dates without changing covered months", () => {
+  const result = calculateEstimate(
+    {
+      retirementYear: 2030,
+      birthMonth: 2,
+      birthYear: 1969,
+      regularServiceRetirement: true,
+      continuousGfd: true,
+      currentGfd: { years: 26, months: 0 },
+      otherLgers: null,
+      sick: { mode: "retirement", hours: 0 },
+      benefitService: { mode: "calculated" },
+      salary: { mode: "anticipated", amount: 100000 },
+    },
+    new Date(2026, 0, 31),
+  );
+
+  assert.equal(result.coveredMonths, 13);
+  assert.deepEqual(result.coverage, {
+    startYear: 2030,
+    startMonth: 2,
+    endYear: 2031,
+    endMonth: 2,
+  });
 });

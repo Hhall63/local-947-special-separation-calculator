@@ -95,7 +95,7 @@ export function ageAtRetirement({
   return retirementYear - birthYear - (birthMonth > 1 ? 1 : 0);
 }
 
-function serviceText(years) {
+export function formatServiceYears(years) {
   const months = years * 12;
   const totalMonths = Math.floor(
     months + Number.EPSILON * Math.abs(months),
@@ -171,7 +171,7 @@ export function evaluateEligibility({
           : continuousGfd === false
             ? "No"
             : hasProjectedGfd
-              ? "Yes; " + serviceText(projectedGfdYears) + " projected GFD service"
+              ? "Yes; " + formatServiceYears(projectedGfdYears) + " projected GFD service"
               : "Yes",
       requirement: "At least five continuous years immediately before retirement",
       targetId: "continuous-gfd-group",
@@ -197,7 +197,7 @@ export function evaluateEligibility({
       actual:
         unreduced === null
           ? null
-          : serviceText(eligibilityServiceYears) +
+          : formatServiceYears(eligibilityServiceYears) +
             (hasAge ? " at age " + retirementAge : ""),
       requirement: "30 years, or age 60 with at least 25 years",
       targetId: "gfd-years",
@@ -398,6 +398,12 @@ export function calculateEstimate(input, today = new Date()) {
     eligibility,
     retirementSalary,
     coveredMonths,
+    coverage: {
+      startYear: input.retirementYear,
+      startMonth: 2,
+      endYear: input.birthYear + 62,
+      endMonth: input.birthMonth,
+    },
     benefit: eligibility.eligible
       ? calculateBenefit({
           benefitServiceYears,
