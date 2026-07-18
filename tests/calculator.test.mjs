@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  ageAtRetirement,
+  evaluateEligibility,
   projectService,
   projectSickHours,
   sickHoursToServiceMonths,
@@ -63,4 +65,83 @@ test("converts sick hours using the LGERS partial-block rule", () => {
   assert.equal(sickHoursToServiceMonths(160.75), 1);
   assert.equal(sickHoursToServiceMonths(161), 2);
   assert.equal(sickHoursToServiceMonths(320), 2);
+});
+
+test("calculates age on January 31 from birth month and year", () => {
+  assert.equal(
+    ageAtRetirement({
+      birthYear: 1970,
+      birthMonth: 1,
+      retirementYear: 2030,
+    }),
+    60,
+  );
+  assert.equal(
+    ageAtRetirement({
+      birthYear: 1970,
+      birthMonth: 2,
+      retirementYear: 2030,
+    }),
+    59,
+  );
+});
+
+test("qualifies at exactly 30 years regardless of age", () => {
+  const result = evaluateEligibility({
+    retirementAge: 55,
+    regularServiceRetirement: true,
+    continuousGfd: true,
+    projectedGfdYears: 20,
+    eligibilityServiceYears: 30,
+  });
+
+  assert.equal(result.eligible, true);
+  assert.equal(result.unreduced, true);
+});
+
+test("qualifies at exactly age 60 with 25 years", () => {
+  const result = evaluateEligibility({
+    retirementAge: 60,
+    regularServiceRetirement: true,
+    continuousGfd: true,
+    projectedGfdYears: 12.5,
+    eligibilityServiceYears: 25,
+  });
+
+  assert.equal(result.eligible, true);
+  assert.equal(result.gfdShare, 0.5);
+});
+
+test("fails when GFD service is below 50 percent", () => {
+  const result = evaluateEligibility({
+    retirementAge: 60,
+    regularServiceRetirement: true,
+    continuousGfd: true,
+    projectedGfdYears: 12.49,
+    eligibilityServiceYears: 25,
+  });
+
+  assert.equal(result.eligible, false);
+  assert.equal(
+    result.checks.find((check) => check.key === "gfd-share").passed,
+    false,
+  );
+});
+
+test("fails each nonnumeric eligibility requirement independently", () => {
+  const result = evaluateEligibility({
+    retirementAge: 62,
+    regularServiceRetirement: false,
+    continuousGfd: false,
+    projectedGfdYears: 4.99,
+    eligibilityServiceYears: 30,
+  });
+
+  assert.equal(result.eligible, false);
+  assert.deepEqual(
+    result.checks
+      .filter((check) => !check.passed)
+      .map((check) => check.key),
+    ["under-62", "regular-service", "continuous-gfd", "gfd-share"],
+  );
 });
