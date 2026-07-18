@@ -4,6 +4,8 @@
 
 Add two clearly labeled **Clear all fields** controls to the calculator form: one near the top of the form and one beside the primary calculation action. Both controls perform the same reset and recovery behavior.
 
+Remove the subheader sentence **“A private, plain-language estimate.”** Keep the existing **“Your entries stay in this browser.”** privacy statement.
+
 ## Placement and layout
 
 - The top control appears immediately after the form's required-fields instruction and before the error summary.

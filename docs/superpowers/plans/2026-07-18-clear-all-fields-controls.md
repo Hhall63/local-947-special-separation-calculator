@@ -15,6 +15,7 @@
 - Reset returns controls to initial defaults, including zero-month defaults, and clears errors, previews, results, announcements, and failure state.
 - Reset restores conditional sections, enables Calculate, and focuses retirement year.
 - No confirmation dialog, dependency, reusable component, policy-math change, or result-copy change.
+- Remove only `A private, plain-language estimate.` from the subheader; retain `Your entries stay in this browser.`
 
 ---
 
@@ -44,6 +45,8 @@ Add a test that first asserts the two placements exist and then exercises both r
 ```js
 test("top and bottom Clear all fields controls share the complete reset", async (t) => {
   const html = await readFile(new URL("index.html", rootUrl), "utf8");
+  assert.doesNotMatch(html, /A private, plain-language estimate\./);
+  assert.match(html, /Your entries stay in this browser\./);
   assert.match(html, /id="clear-form-top"[\s\S]*Clear all fields/);
   assert.match(
     html,
@@ -88,6 +91,20 @@ node --test --test-name-pattern "top and bottom Clear all fields" tests/structur
 Expected: FAIL because the two button IDs and handlers do not exist.
 
 - [ ] **Step 3: Add the two controls and the minimal responsive action layout**
+
+First change the masthead copy from:
+
+```html
+<p class="header-copy">
+  A private, plain-language estimate. Your entries stay in this browser.
+</p>
+```
+
+to:
+
+```html
+<p class="header-copy">Your entries stay in this browser.</p>
+```
 
 Add the top action immediately after the required-fields note:
 
