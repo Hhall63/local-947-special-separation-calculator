@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
+import * as calculator from "../calculator.mjs";
+
 import {
   RANK_SALARIES,
   ageAtRetirement,
@@ -186,6 +188,37 @@ test("uses anticipated salary directly", () => {
       today: new Date(2026, 6, 17),
       retirementDate: new Date(2030, 0, 31),
     }),
+    123456,
+  );
+});
+
+test("calculates service without unrelated eligibility or salary fields", () => {
+  assert.equal(typeof calculator.calculateService, "function");
+  const service = calculator.calculateService(
+    {
+      retirementYear: 2030,
+      currentGfd: { years: 20, months: 0 },
+      otherLgers: { years: 4, months: 0 },
+      sick: { mode: "retirement", hours: 320 },
+    },
+    new Date(2026, 0, 31),
+  );
+
+  assert.equal(service.projectedGfdYears, 24);
+  assert.equal(service.sickServiceMonths, 2);
+  assert.equal(service.eligibilityServiceYears, 28 + 2 / 12);
+});
+
+test("calculates salary without unrelated service or eligibility fields", () => {
+  assert.equal(typeof calculator.calculateRetirementSalary, "function");
+  assert.equal(
+    calculator.calculateRetirementSalary(
+      {
+        retirementYear: 2030,
+        salary: { mode: "anticipated", amount: 123456 },
+      },
+      new Date(2026, 6, 17),
+    ),
     123456,
   );
 });

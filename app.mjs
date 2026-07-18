@@ -1,6 +1,9 @@
 import {
   RANK_SALARIES,
   calculateEstimate,
+  calculateRetirementSalary,
+  calculateService,
+  toServiceYears,
   validateInput,
 } from "./calculator.mjs";
 
@@ -55,6 +58,27 @@ const errorTargets = {
   "promotion-month": "promotion-month",
   "promotion-year": "promotion-year",
 };
+
+const serviceErrorKeys = new Set([
+  "retirement-year",
+  "gfd-years",
+  "gfd-months",
+  "other-lgers",
+  "other-years",
+  "other-months",
+  "sick-mode",
+  "sick-hours",
+]);
+
+const salaryErrorKeys = new Set([
+  "retirement-year",
+  "salary-mode",
+  "anticipated-salary",
+  "current-salary",
+  "rank",
+  "promotion-month",
+  "promotion-year",
+]);
 
 function element(id) {
   return document.getElementById(id);
@@ -238,30 +262,53 @@ function clearPreview() {
   }
 }
 
+function hasAnyError(errors, keys) {
+  return Object.keys(errors).some((key) => keys.has(key));
+}
+
 function renderPreview() {
   updateConditionalFields();
   const input = collectInput();
   const errors = validateInput(input);
+  const service = hasAnyError(errors, serviceErrorKeys)
+    ? null
+    : calculateService(input);
 
-  if (Object.keys(errors).length > 0) {
-    clearPreview();
-    return;
+  element("projected-sick-hours").textContent = service
+    ? Math.round(service.retirementSickHours).toLocaleString() + " hours"
+    : "-";
+  element("sick-service").textContent = service
+    ? serviceText(service.sickServiceYears)
+    : "-";
+  element("projected-gfd-service").textContent = service
+    ? serviceText(service.projectedGfdYears)
+    : "-";
+  element("eligibility-service").textContent = service
+    ? serviceText(service.eligibilityServiceYears)
+    : "-";
+
+  let creditableYears = null;
+  if (
+    input.benefitService.mode === "manual" &&
+    !errors["benefit-years"] &&
+    !errors["benefit-months"]
+  ) {
+    creditableYears = toServiceYears(input.benefitService);
+  } else if (
+    input.benefitService.mode === "calculated" &&
+    service
+  ) {
+    creditableYears = service.eligibilityServiceYears;
   }
-
-  const estimate = calculateEstimate(input);
-  element("projected-sick-hours").textContent =
-    Math.round(estimate.service.retirementSickHours).toLocaleString() +
-    " hours";
-  element("sick-service").textContent =
-    serviceText(estimate.service.sickServiceYears);
-  element("projected-gfd-service").textContent =
-    serviceText(estimate.service.projectedGfdYears);
-  element("eligibility-service").textContent =
-    serviceText(estimate.service.eligibilityServiceYears);
   element("benefit-service-value").textContent =
-    serviceText(estimate.service.benefitServiceYears);
-  element("projected-salary").textContent =
-    currency.format(estimate.retirementSalary);
+    creditableYears === null ? "-" : serviceText(creditableYears);
+
+  element("projected-salary").textContent = hasAnyError(
+    errors,
+    salaryErrorKeys,
+  )
+    ? "-"
+    : currency.format(calculateRetirementSalary(input));
 }
 
 function renderResult(estimate) {

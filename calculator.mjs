@@ -249,7 +249,7 @@ export function calculateBenefit({
   };
 }
 
-export function calculateEstimate(input, today = new Date()) {
+export function calculateService(input, today = new Date()) {
   const retirementDate = retirementDateForYear(input.retirementYear);
   const currentGfdYears = toServiceYears(input.currentGfd);
   const otherLgersYears =
@@ -273,6 +273,30 @@ export function calculateEstimate(input, today = new Date()) {
   const sickServiceYears = sickServiceMonths / 12;
   const eligibilityServiceYears =
     projected.projectedGfdYears + otherLgersYears + sickServiceYears;
+
+  return {
+    currentGfdYears,
+    otherLgersYears,
+    remainingYears: projected.remainingYears,
+    projectedGfdYears: projected.projectedGfdYears,
+    retirementSickHours,
+    sickServiceMonths,
+    sickServiceYears,
+    eligibilityServiceYears,
+  };
+}
+
+export function calculateRetirementSalary(input, today = new Date()) {
+  return projectSalary({
+    ...input.salary,
+    today,
+    retirementDate: retirementDateForYear(input.retirementYear),
+  });
+}
+
+export function calculateEstimate(input, today = new Date()) {
+  const retirementDate = retirementDateForYear(input.retirementYear);
+  const service = calculateService(input, today);
   const retirementAge = ageAtRetirement({
     birthYear: input.birthYear,
     birthMonth: input.birthMonth,
@@ -282,18 +306,14 @@ export function calculateEstimate(input, today = new Date()) {
     retirementAge,
     regularServiceRetirement: input.regularServiceRetirement,
     continuousGfd: input.continuousGfd,
-    projectedGfdYears: projected.projectedGfdYears,
-    eligibilityServiceYears,
+    projectedGfdYears: service.projectedGfdYears,
+    eligibilityServiceYears: service.eligibilityServiceYears,
   });
   const benefitServiceYears =
     input.benefitService.mode === "manual"
       ? toServiceYears(input.benefitService)
-      : eligibilityServiceYears;
-  const retirementSalary = projectSalary({
-    ...input.salary,
-    today,
-    retirementDate,
-  });
+      : service.eligibilityServiceYears;
+  const retirementSalary = calculateRetirementSalary(input, today);
   const coveredMonths = coveredBenefitMonths({
     birthYear: input.birthYear,
     birthMonth: input.birthMonth,
@@ -301,15 +321,9 @@ export function calculateEstimate(input, today = new Date()) {
   });
 
   return {
-    dates: { retirementDate, remainingYears: projected.remainingYears },
+    dates: { retirementDate, remainingYears: service.remainingYears },
     service: {
-      currentGfdYears,
-      otherLgersYears,
-      projectedGfdYears: projected.projectedGfdYears,
-      retirementSickHours,
-      sickServiceMonths,
-      sickServiceYears,
-      eligibilityServiceYears,
+      ...service,
       benefitServiceYears,
     },
     retirementAge,

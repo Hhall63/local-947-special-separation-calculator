@@ -56,6 +56,22 @@ test("browser controller reads numeric inputs and selects", async () => {
   );
 });
 
+test("browser controller supports independent service and salary previews", async () => {
+  const app = await readFile(new URL("app.mjs", rootUrl), "utf8");
+
+  for (const fragment of [
+    "calculateService",
+    "calculateRetirementSalary",
+    "serviceErrorKeys",
+    "salaryErrorKeys",
+  ]) {
+    assert.ok(
+      app.includes(fragment),
+      "Missing progressive preview hook: " + fragment,
+    );
+  }
+});
+
 test("uses approved creditable-years copy and defaults", async () => {
   const html = await readFile(new URL("index.html", rootUrl), "utf8");
   const normalizedHtml = html.replace(/\s+/g, " ");
