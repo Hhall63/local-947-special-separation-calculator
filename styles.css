@@ -344,6 +344,23 @@ dd {
   background: var(--navy);
 }
 
+.form-top-actions,
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.form-top-actions {
+  justify-content: flex-end;
+  margin-block-end: var(--space-3);
+}
+
+.form-actions .primary-button {
+  flex: 1 1 22rem;
+  width: auto;
+}
+
 .error-summary,
 .result {
   margin-block: var(--space-5);
@@ -493,6 +510,11 @@ dd {
 }
 
 @media (max-width: 640px) {
+  .form-top-actions > button,
+  .form-actions > button {
+    width: 100%;
+  }
+
   .masthead {
     align-items: flex-start;
   }

@@ -532,10 +532,11 @@ element("edit-answers").addEventListener("click", () => {
   control.focus();
 });
 
-element("start-over").addEventListener("click", () => {
+function resetCalculator() {
   form.reset();
   clearErrors();
   clearPreview();
+  element("preview-status").textContent = "";
   result.hidden = true;
   result.dataset.mode = "";
   automaticFailureFocused = false;
@@ -546,7 +547,11 @@ element("start-over").addEventListener("click", () => {
   element("calculate-button").disabled = false;
   updateConditionalFields();
   element("retirement-year").focus();
-});
+}
+
+for (const id of ["clear-form-top", "clear-form-bottom", "start-over"]) {
+  element(id).addEventListener("click", resetCalculator);
+}
 
 populateChoices();
 updateConditionalFields();

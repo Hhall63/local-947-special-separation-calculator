@@ -23,10 +23,7 @@
         <div>
           <p class="brand-line">Professional Fire Fighters of Greensboro</p>
           <h1>Local 947 Special Separation Calculator</h1>
-          <p class="header-copy">
-            A private, plain-language estimate. Your entries stay in this
-            browser.
-          </p>
+          <p class="header-copy">Your entries stay in this browser.</p>
         </div>
       </div>
     </header>
@@ -75,6 +72,11 @@
 
       <form id="calculator-form" novalidate>
         <p class="privacy-note">All questions currently shown are required.</p>
+        <div class="form-top-actions">
+          <button id="clear-form-top" class="secondary-button" type="button">
+            Clear all fields
+          </button>
+        </div>
 
         <div id="error-summary" class="error-summary" tabindex="-1" hidden>
           <h2>Check your answers</h2>
@@ -483,9 +485,14 @@
           aria-atomic="true"
         ></p>
 
-        <button id="calculate-button" class="primary-button" type="submit">
-          Calculate my allowance estimate
-        </button>
+        <div class="form-actions">
+          <button id="calculate-button" class="primary-button" type="submit">
+            Calculate my allowance estimate
+          </button>
+          <button id="clear-form-bottom" class="secondary-button" type="button">
+            Clear all fields
+          </button>
+        </div>
       </form>
 
       <section id="result" class="result" aria-labelledby="result-title" hidden>

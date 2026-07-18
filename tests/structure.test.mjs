@@ -26,6 +26,8 @@ async function controllerFixture() {
     rank: "select",
     "promotion-month": "select",
     "promotion-year": "input",
+    "clear-form-top": "button",
+    "clear-form-bottom": "button",
     "calculate-button": "button",
     "edit-answers": "button",
     "start-over": "button",
@@ -251,6 +253,42 @@ test("calculator HTML exposes required form and accessibility hooks", async () =
   }
 });
 
+test("top and bottom Clear all fields controls share the complete reset", async (t) => {
+  const html = await readFile(new URL("index.html", rootUrl), "utf8");
+  assert.doesNotMatch(html, /A private, plain-language estimate\./);
+  assert.match(html, /Your entries stay in this browser\./);
+  assert.match(html, /id="clear-form-top"[\s\S]*Clear all fields/);
+  assert.match(
+    html,
+    /id="calculate-button"[\s\S]*id="clear-form-bottom"[\s\S]*Clear all fields/,
+  );
+
+  const fixture = await controllerFixture();
+  t.after(fixture.cleanup);
+
+  for (const id of ["clear-form-top", "clear-form-bottom"]) {
+    fixture.setEligibilityInputs("1");
+    fixture.get("result").hidden = false;
+    fixture.get("result").dataset.mode = "automatic";
+    fixture.get("benefit-service-section").hidden = true;
+    fixture.get("salary-section").hidden = true;
+    fixture.get("calculate-button").hidden = true;
+    fixture.get("calculate-button").disabled = true;
+
+    fixture.get(id).dispatch("click");
+
+    assert.equal(fixture.get("retirement-year").value, "");
+    assert.equal(fixture.get("gfd-months").value, "0");
+    assert.equal(fixture.get("result").hidden, true);
+    assert.equal(fixture.get("result").dataset.mode, "");
+    assert.equal(fixture.get("benefit-service-section").hidden, false);
+    assert.equal(fixture.get("salary-section").hidden, false);
+    assert.equal(fixture.get("calculate-button").hidden, false);
+    assert.equal(fixture.get("calculate-button").disabled, false);
+    assert.equal(fixture.document.activeElement, fixture.get("retirement-year"));
+  }
+});
+
 test("the Local 947 logo path is declared", async () => {
   const html = await readFile(new URL("index.html", rootUrl), "utf8");
   assert.match(
@@ -337,7 +375,7 @@ test("browser controller wires validation, calculation, results, and reset", asy
     "updateConditionalFields",
     "renderPreview",
     "renderResult",
-    'element("start-over")',
+    "resetCalculator",
   ]) {
     assert.ok(app.includes(fragment), "Missing controller hook: " + fragment);
   }
