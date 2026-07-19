@@ -27,6 +27,17 @@ test("converts separate years and months to decimal years", () => {
   assert.equal(toServiceYears({ years: 12, months: 6 }), 12.5);
 });
 
+test("round-trips every valid service month", () => {
+  for (let years = 0; years <= 40; years += 1) {
+    for (let months = 0; months <= 11; months += 1) {
+      assert.equal(
+        formatServiceYears(toServiceYears({ years, months })),
+        `${years} years, ${months} months`,
+      );
+    }
+  }
+});
+
 test("formats completed service months without rounding up", () => {
   assert.equal(formatServiceYears(29.99), "29 years, 11 months");
 });
@@ -155,6 +166,53 @@ test("calculates age on January 31 from birth month and year", () => {
     }),
     59,
   );
+});
+
+test("calculates age and covered months for every birth month", () => {
+  for (let birthMonth = 1; birthMonth <= 12; birthMonth += 1) {
+    const age = ageAtRetirement({
+      birthYear: 1970,
+      birthMonth,
+      retirementYear: 2030,
+    });
+    assert.equal(age, birthMonth === 1 ? 60 : 59);
+    assert.equal(
+      coveredBenefitMonths({
+        birthYear: 1970,
+        birthMonth,
+        retirementYear: 2030,
+      }),
+      24 + birthMonth - 1,
+    );
+  }
+});
+
+test("evaluates every required-choice combination", () => {
+  const choices = [true, false, undefined];
+  for (const regularServiceRetirement of choices) {
+    for (const continuousGfd of choices) {
+      const result = evaluateEligibility({
+        retirementAge: 60,
+        regularServiceRetirement,
+        continuousGfd,
+        projectedGfdYears: 20,
+        eligibilityServiceYears: 30,
+      });
+      assert.equal(
+        result.complete,
+        regularServiceRetirement !== undefined &&
+          continuousGfd !== undefined,
+      );
+      assert.equal(
+        result.failed,
+        regularServiceRetirement === false || continuousGfd === false,
+      );
+      assert.equal(
+        result.eligible,
+        regularServiceRetirement === true && continuousGfd === true,
+      );
+    }
+  }
 });
 
 test("qualifies at exactly 30 years regardless of age", () => {
@@ -313,6 +371,44 @@ test("a July promotion receives its first raise the following July", () => {
   );
 });
 
+test("projects every configured rank across raise counts", () => {
+  for (const rank of Object.keys(RANK_SALARIES)) {
+    for (const [promotionYear, retirementYear, raises] of [
+      [2029, 2030, 0],
+      [2028, 2030, 1],
+      [2027, 2030, 2],
+    ]) {
+      assert.equal(
+        projectSalary({
+          mode: "rank",
+          rank,
+          promotionMonth: 7,
+          promotionYear,
+          today: new Date(2026, 0, 31),
+          retirementDate: new Date(retirementYear, 0, 31),
+        }),
+        RANK_SALARIES[rank].salary * 1.04 ** raises,
+      );
+    }
+  }
+});
+
+test("counts July raises on both sides of the strict boundary", () => {
+  for (const [baseDate, expected] of [
+    [new Date(2027, 5, 30), 3],
+    [new Date(2027, 6, 1), 2],
+    [new Date(2027, 6, 2), 2],
+  ]) {
+    assert.equal(
+      countJulyRaises({
+        baseDate,
+        retirementDate: new Date(2030, 0, 31),
+      }),
+      expected,
+    );
+  }
+});
+
 test("uses anticipated salary directly", () => {
   assert.equal(
     projectSalary({
@@ -390,6 +486,20 @@ test("calculates annual, biweekly, and monthly-prorated totals", () => {
   );
 });
 
+test("preserves full precision for fractional allowance inputs", () => {
+  for (const coveredMonths of [1, 13, 24]) {
+    const result = calculateBenefit({
+      benefitServiceYears: 25 + 7 / 12,
+      retirementSalary: 98_765.43,
+      coveredMonths,
+    });
+    const annual = 0.0085 * (25 + 7 / 12) * 98_765.43;
+    assert.equal(result.annual, annual);
+    assert.equal(result.biweekly, annual / 26);
+    assert.equal(result.total, (annual / 12) * coveredMonths);
+  }
+});
+
 test("manual benefit service changes payments without changing eligibility", () => {
   const estimate = calculateEstimate(
     {
@@ -455,6 +565,65 @@ test("accepts a complete valid input", () => {
     validateInput(validInput(), new Date(2026, 6, 17)),
     {},
   );
+});
+
+test("validates every calculator input class", () => {
+  const cases = [
+    ["retirement-year", (input) => { input.retirementYear = Number.NaN; }],
+    ["birth-month", (input) => { input.birthMonth = 0; }],
+    ["birth-year", (input) => { input.birthYear = 1899; }],
+    ["regular-retirement", (input) => { input.regularServiceRetirement = undefined; }],
+    ["continuous-gfd", (input) => { input.continuousGfd = undefined; }],
+    ["gfd-years", (input) => { input.currentGfd.years = -1; }],
+    ["gfd-years", (input) => { input.currentGfd.years = 1.5; }],
+    ["gfd-months", (input) => { input.currentGfd.months = 12; }],
+    ["other-lgers", (input) => { input.otherLgers = undefined; }],
+    ["other-years", (input) => { input.otherLgers = { years: -1, months: 0 }; }],
+    ["other-months", (input) => { input.otherLgers = { years: 0, months: 12 }; }],
+    ["sick-mode", (input) => { input.sick.mode = undefined; }],
+    ["sick-hours", (input) => { input.sick.hours = -0.25; }],
+    ["benefit-service-mode", (input) => { input.benefitService.mode = undefined; }],
+    ["benefit-years", (input) => { input.benefitService = { mode: "manual", years: 0, months: 0 }; }],
+    ["benefit-months", (input) => { input.benefitService = { mode: "manual", years: 1, months: 12 }; }],
+    ["anticipated-salary", (input) => { input.salary = { mode: "anticipated", amount: 0 }; }],
+    ["current-salary", (input) => { input.salary = { mode: "current", amount: 0 }; }],
+    ["rank", (input) => { input.salary = { mode: "rank", rank: "", promotionMonth: 1, promotionYear: 2029 }; }],
+    ["promotion-month", (input) => { input.salary = { mode: "rank", rank: "captain", promotionMonth: 0, promotionYear: 2029 }; }],
+    ["promotion-year", (input) => { input.salary = { mode: "rank", rank: "captain", promotionMonth: 2, promotionYear: 2030 }; }],
+  ];
+
+  for (const [expectedKey, mutate] of cases) {
+    const input = structuredClone(validInput());
+    mutate(input);
+    const errors = validateInput(input, new Date(2026, 6, 17));
+    assert.ok(errors[expectedKey], `Expected ${expectedKey}`);
+  }
+});
+
+test("accepts every supported sick and salary mode", () => {
+  const salaryCases = [
+    { mode: "anticipated", amount: 100_000 },
+    { mode: "current", amount: 90_000 },
+    {
+      mode: "rank",
+      rank: "captain",
+      promotionMonth: 1,
+      promotionYear: 2029,
+    },
+  ];
+  const sickCases = [
+    { mode: "retirement", hours: 160.75 },
+    { mode: "current", hours: 160.75 },
+  ];
+
+  for (const salary of salaryCases) {
+    for (const sick of sickCases) {
+      const input = structuredClone(validInput());
+      input.salary = salary;
+      input.sick = sick;
+      assert.deepEqual(validateInput(input, new Date(2026, 6, 17)), {});
+    }
+  }
 });
 
 test("rejects a retirement date that is not in the future", () => {
@@ -653,4 +822,139 @@ test("returns the allowance coverage dates without changing covered months", () 
     endYear: 2031,
     endMonth: 2,
   });
+});
+
+test("integrated estimates preserve service and allowance identities", () => {
+  const cases = [
+    {
+      otherLgers: null,
+      sick: { mode: "retirement", hours: 161 },
+      benefitService: { mode: "calculated" },
+      salary: { mode: "anticipated", amount: 100_000 },
+    },
+    {
+      otherLgers: { years: 2, months: 6 },
+      sick: { mode: "current", hours: 320.75 },
+      benefitService: { mode: "calculated" },
+      salary: { mode: "current", amount: 90_000 },
+    },
+    {
+      otherLgers: null,
+      sick: { mode: "retirement", hours: 8 },
+      benefitService: { mode: "manual", years: 28, months: 6 },
+      salary: {
+        mode: "rank",
+        rank: "captain",
+        promotionMonth: 1,
+        promotionYear: 2029,
+      },
+    },
+  ];
+
+  for (const overrides of cases) {
+    const estimate = calculateEstimate(
+      { ...validInput(), ...overrides },
+      new Date(2026, 6, 17),
+    );
+    assert.equal(
+      estimate.service.sickServiceYears,
+      estimate.service.sickServiceMonths / 12,
+    );
+    assert.ok(estimate.benefit);
+    assert.equal(estimate.benefit.biweekly, estimate.benefit.annual / 26);
+    assert.equal(
+      estimate.benefit.total,
+      (estimate.benefit.annual / 12) * estimate.coveredMonths,
+    );
+  }
+});
+
+test("withholds the allowance for every eligibility failure class", () => {
+  const cases = [
+    ["under-62", (input) => { input.birthYear = 1968; }],
+    ["regular-service", (input) => { input.regularServiceRetirement = false; }],
+    ["continuous-gfd", (input) => { input.continuousGfd = false; }],
+    ["gfd-share", (input) => { input.otherLgers = { years: 40, months: 0 }; }],
+    ["unreduced", (input) => { input.currentGfd = { years: 20, months: 0 }; }],
+  ];
+
+  for (const [failedKey, mutate] of cases) {
+    const input = structuredClone(validInput());
+    mutate(input);
+    const estimate = calculateEstimate(input, new Date(2026, 6, 17));
+    assert.equal(estimate.benefit, null, failedKey);
+    assert.equal(
+      estimate.eligibility.checks.find((check) => check.key === failedKey)
+        .passed,
+      false,
+      failedKey,
+    );
+  }
+});
+
+test("integrated eligibility accepts exact composite service and share thresholds", () => {
+  const cases = [
+    {
+      label: "25 years at age 60",
+      today: new Date(2029, 0, 31),
+      input: {
+        ...validInput(),
+        currentGfd: { years: 11, months: 6 },
+        otherLgers: { years: 10, months: 8 },
+        sick: { mode: "retirement", hours: 3_361 },
+      },
+    },
+    {
+      label: "30 years under age 60",
+      today: new Date(2029, 0, 31),
+      input: {
+        ...validInput(),
+        birthYear: 1971,
+        currentGfd: { years: 16, months: 6 },
+        otherLgers: { years: 10, months: 8 },
+        sick: { mode: "retirement", hours: 3_361 },
+      },
+    },
+    {
+      label: "exactly 50 percent GFD",
+      today: new Date(2029, 0, 31),
+      input: {
+        ...validInput(),
+        currentGfd: { years: 11, months: 6 },
+        otherLgers: { years: 10, months: 7 },
+        sick: { mode: "retirement", hours: 3_521 },
+      },
+    },
+  ];
+
+  for (const { label, today, input } of cases) {
+    const estimate = calculateEstimate(input, today);
+    assert.equal(estimate.eligibility.eligible, true, label);
+    assert.ok(estimate.benefit, label);
+  }
+});
+
+test("integrated service preserves every sick-hour boundary", () => {
+  for (const [hours, months] of [
+    [7.99, 0],
+    [8, 1],
+    [160.75, 1],
+    [161, 2],
+  ]) {
+    const input = validInput();
+    input.sick = { mode: "retirement", hours };
+    assert.equal(
+      calculateEstimate(input, new Date(2029, 0, 31)).service
+        .sickServiceMonths,
+      months,
+      `${hours} hours`,
+    );
+  }
+});
+
+test("integrated service uses the Excel multi-year projection fraction", () => {
+  const estimate = calculateEstimate(validInput(), new Date(2026, 6, 18));
+  assert.ok(
+    Math.abs(estimate.dates.remainingYears - 3.54052573932092) < 1e-12,
+  );
 });
