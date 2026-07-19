@@ -713,6 +713,26 @@ test("uses approved creditable-service copy and defaults", async () => {
     html,
     /<button id="calculate-button" class="primary-button" type="submit">\s*Calculate my allowance estimate\s*<\/button>/,
   );
+
+  for (const fragment of [
+    "Eligibility",
+    "Creditable service",
+    "Allowance estimate",
+    "Total Creditable Service",
+    "Sick hours to Creditable Service",
+  ]) {
+    assert.ok(
+      normalizedHtml.includes(fragment),
+      "Missing worksheet copy: " + fragment,
+    );
+  }
+
+  assert.match(
+    html,
+    /<ol class="form-stages" aria-label="How the estimate is built">/,
+  );
+  assert.match(html, /class="section-heading"/);
+  assert.match(html, /class="form-group"/);
 });
 
 test("rank choices show labels without starting pay", async () => {

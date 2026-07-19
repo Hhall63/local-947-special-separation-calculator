@@ -153,6 +153,73 @@ h2 {
   border-block-start: 1px solid var(--border);
 }
 
+.form-stages {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0 0 var(--space-4);
+  list-style: none;
+  border-block: 1px solid var(--border);
+}
+
+.form-stages li,
+.section-heading {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-2);
+  align-items: start;
+}
+
+.form-stages li {
+  padding-block: var(--space-2);
+}
+
+.form-stages strong,
+.form-stages small {
+  display: block;
+}
+
+.form-stages small,
+.section-heading p {
+  color: var(--muted);
+}
+
+.form-stages small {
+  margin-block-start: 0.15rem;
+}
+
+.step-number {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  color: var(--white);
+  background: var(--navy);
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.section-heading h2 {
+  margin: 0;
+}
+
+.section-heading p {
+  max-width: 68ch;
+  margin: var(--space-1) 0 0;
+}
+
+.form-group {
+  margin-block-start: var(--space-4);
+  padding-block-start: var(--space-4);
+  border-block-start: 1px solid var(--border);
+}
+
+.form-group .form-subheading {
+  margin: 0 0 var(--space-3);
+}
+
 .requirements {
   padding-inline-start: 1.25rem;
 }
@@ -530,6 +597,10 @@ dd {
 
   .choice-row {
     flex-direction: column;
+  }
+
+  .form-stages {
+    grid-template-columns: 1fr;
   }
 
   .derived-values > div,

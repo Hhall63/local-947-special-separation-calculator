@@ -72,6 +72,29 @@
 
       <form id="calculator-form" novalidate>
         <p class="privacy-note">All questions currently shown are required.</p>
+        <ol class="form-stages" aria-label="How the estimate is built">
+          <li>
+            <span class="step-number">1</span>
+            <span>
+              <strong>Eligibility</strong>
+              <small>Retirement date and qualifying service</small>
+            </span>
+          </li>
+          <li>
+            <span class="step-number">2</span>
+            <span>
+              <strong>Creditable service</strong>
+              <small>Service used to determine the allowance</small>
+            </span>
+          </li>
+          <li>
+            <span class="step-number">3</span>
+            <span>
+              <strong>Allowance estimate</strong>
+              <small>Salary and estimated payment</small>
+            </span>
+          </li>
+        </ol>
         <div class="form-top-actions">
           <button id="clear-form-top" class="secondary-button" type="button">
             Clear all fields
@@ -84,10 +107,17 @@
         </div>
 
         <section class="form-section" aria-labelledby="retirement-title">
-          <h2 id="retirement-title">Retirement and service</h2>
+          <div class="section-heading">
+            <span class="step-number">1</span>
+            <div>
+              <h2 id="retirement-title">Eligibility</h2>
+              <p>Confirm your retirement date and firefighter service.</p>
+            </div>
+          </div>
 
-          <h3 class="form-subheading">Retirement date and age</h3>
-          <div class="field">
+          <div class="form-group">
+            <h3 class="form-subheading">Retirement date and age</h3>
+            <div class="field">
             <label for="retirement-year">Estimated retirement year (4 digits)</label>
             <input
               id="retirement-year"
@@ -134,9 +164,11 @@
               </div>
             </div>
           </fieldset>
+          </div>
 
-          <h3 class="form-subheading">Eligibility questions</h3>
-          <fieldset
+          <div class="form-group">
+            <h3 class="form-subheading">Eligibility questions</h3>
+            <fieldset
             id="regular-retirement-group"
             role="radiogroup"
             aria-required="true"
@@ -177,9 +209,11 @@
               </label>
             </div>
           </fieldset>
+          </div>
 
-          <h3 class="form-subheading">Service and sick leave</h3>
-          <fieldset>
+          <div class="form-group">
+            <h3 class="form-subheading">Service and sick leave</h3>
+            <fieldset>
             <legend>Current sworn GFD service</legend>
             <div class="field-row">
               <div class="field">
@@ -289,7 +323,7 @@
               <dd id="projected-sick-hours">-</dd>
             </div>
             <div>
-              <dt>Sick service</dt>
+              <dt>Sick hours to Creditable Service</dt>
               <dd id="sick-service">-</dd>
             </div>
             <div>
@@ -297,10 +331,11 @@
               <dd id="projected-gfd-service">-</dd>
             </div>
             <div>
-              <dt>Eligibility service</dt>
+              <dt>Total Creditable Service</dt>
               <dd id="eligibility-service">-</dd>
             </div>
           </dl>
+          </div>
         </section>
 
         <section
@@ -308,9 +343,13 @@
           class="form-section"
           aria-labelledby="benefit-service-title"
         >
-          <h2 id="benefit-service-title">
-            Creditable service used for the allowance
-          </h2>
+          <div class="section-heading">
+            <span class="step-number">2</span>
+            <div>
+              <h2 id="benefit-service-title">Creditable service</h2>
+              <p>Choose the service total used for your allowance estimate.</p>
+            </div>
+          </div>
           <p class="hint">
             Projected GFD service + other LGERS service + sick-leave service
             credit = creditable service.
@@ -390,7 +429,13 @@
           class="form-section"
           aria-labelledby="salary-title"
         >
-          <h2 id="salary-title">Retirement salary</h2>
+          <div class="section-heading">
+            <span class="step-number">3</span>
+            <div>
+              <h2 id="salary-title">Allowance estimate</h2>
+              <p>Choose the retirement salary information to estimate payment.</p>
+            </div>
+          </div>
           <fieldset
             id="salary-mode-group"
             role="radiogroup"
