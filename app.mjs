@@ -22,6 +22,9 @@ const currency = new Intl.NumberFormat("en-US", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 });
+const hoursFormat = new Intl.NumberFormat("en-US", {
+  maximumFractionDigits: 2,
+});
 
 const months = [
   "January",
@@ -377,7 +380,7 @@ function renderPreview(announce = false) {
   );
 
   element("projected-sick-hours").textContent = service
-    ? Math.round(service.retirementSickHours).toLocaleString() + " hours"
+    ? hoursFormat.format(service.retirementSickHours) + " hours"
     : "-";
   element("sick-service").textContent = service
     ? formatServiceYears(service.sickServiceYears)

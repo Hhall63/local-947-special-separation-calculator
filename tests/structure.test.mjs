@@ -211,7 +211,7 @@ async function controllerFixture() {
     get("birth-month").value = "1";
     get("birth-year").value = "1970";
     get("gfd-years").value = gfdYears;
-    get("sick-hours").value = "0";
+    get("sick-hours").value = "160.75";
     setRadio("regular-retirement", "yes");
     setRadio("continuous-gfd", "yes");
     setRadio("other-lgers", "no");
@@ -325,6 +325,10 @@ test("top and bottom Clear all fields controls share the complete reset", async 
     fixture.setEligibilityInputs("1");
     fixture.setAllowanceInputs();
     fixture.form.dispatch("change", fixture.get("gfd-years"));
+    assert.equal(
+      fixture.get("projected-sick-hours").textContent,
+      "160.75 hours",
+    );
     for (const [fieldId, value] of Object.entries({
       "gfd-months": "7",
       "other-years": "1",

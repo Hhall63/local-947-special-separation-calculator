@@ -74,12 +74,37 @@ test("caps historical sick accumulation at 96 hours per year", () => {
   );
 });
 
-test("converts sick hours using the LGERS partial-block rule", () => {
-  assert.equal(sickHoursToServiceMonths(0), 0);
-  assert.equal(sickHoursToServiceMonths(160), 1);
-  assert.equal(sickHoursToServiceMonths(160.75), 1);
-  assert.equal(sickHoursToServiceMonths(161), 2);
-  assert.equal(sickHoursToServiceMonths(320), 2);
+test("converts sick hours using the approved eight-hour minimum and partial-block rule", () => {
+  const cases = [
+    [0, 0],
+    [0.99, 0],
+    [1, 0],
+    [7.99, 0],
+    [8, 1],
+    [159.99, 1],
+    [160, 1],
+    [160.75, 1],
+    [161, 2],
+    [319.99, 2],
+    [320, 2],
+    [320.75, 2],
+    [321, 3],
+  ];
+
+  for (const [hours, months] of cases) {
+    assert.equal(sickHoursToServiceMonths(hours), months, `${hours} hours`);
+  }
+  assert.throws(() => sickHoursToServiceMonths(-0.25), RangeError);
+});
+
+test("sick conversion follows the approved rule for every quarter hour through 600 days", () => {
+  for (let quarters = 0; quarters <= 19_200; quarters += 1) {
+    const hours = quarters / 4;
+    const fullMonths = Math.floor(hours / 160);
+    const remainder = hours - fullMonths * 160;
+    const expected = hours < 8 ? 0 : fullMonths + (remainder >= 1 ? 1 : 0);
+    assert.equal(sickHoursToServiceMonths(hours), expected, `${hours} hours`);
+  }
 });
 
 test("calculates age on January 31 from birth month and year", () => {

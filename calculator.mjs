@@ -1,6 +1,12 @@
 export const HOURS_PER_SICK_MONTH = 160;
 export const MAX_SICK_ACCRUAL_PER_YEAR = 96;
 
+const NUMERIC_TOLERANCE = 1e-9;
+
+function isAtLeast(value, minimum) {
+  return value >= minimum - NUMERIC_TOLERANCE;
+}
+
 const DAY_MS = 86_400_000;
 
 export function toServiceYears({ years, months }) {
@@ -77,10 +83,11 @@ export function sickHoursToServiceMonths(hours) {
   if (hours < 0) {
     throw new RangeError("Sick hours cannot be negative.");
   }
+  if (!isAtLeast(hours, 8)) return 0;
 
   const fullMonths = Math.floor(hours / HOURS_PER_SICK_MONTH);
   const remainingHours = hours - fullMonths * HOURS_PER_SICK_MONTH;
-  return fullMonths + (remainingHours >= 1 ? 1 : 0);
+  return fullMonths + (isAtLeast(remainingHours, 1) ? 1 : 0);
 }
 
 export function ageAtRetirement({
