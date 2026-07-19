@@ -345,6 +345,83 @@ export const SALARY_STRUCTURE = Object.freeze({
   }),
 });
 
+const EMPLOYEE_TITLE_RANKS = Object.freeze({
+  "Fire Engineer": "f04",
+  "Senior Fire Inspector": "f04",
+  "Fire Captain": "f05",
+  "Asst Fire Marshal": "f05",
+  "Battalion Fire Chief": "f06",
+  "Deputy Fire Marshal": "f06",
+  "Asst Fire Chief": "f07",
+  "Fire Marshal": "f07",
+  "Deputy Fire Chief": "f08",
+  "Fire Chief": "f09",
+});
+
+function normalizedEmployeeName(record) {
+  return [
+    record.Name,
+    record.FirstName,
+    record.MiddleInitial,
+    record.LastName,
+    record.NameSuffix,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLocaleLowerCase("en-US")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+export function findEmployeeSalaryRecords(records, query, limit = 20) {
+  const terms = normalizedEmployeeName({ Name: query })
+    .split(" ")
+    .filter(Boolean);
+  if (terms.join("").length < 2) return { matches: [], total: 0 };
+
+  const allMatches = records
+    .filter((record) => {
+      const name = normalizedEmployeeName(record);
+      return name && terms.every((term) => name.includes(term));
+    })
+    .sort((left, right) =>
+      String(left.Name ?? "").localeCompare(
+        String(right.Name ?? ""),
+        "en-US",
+      ),
+    );
+
+  return { matches: allMatches.slice(0, limit), total: allMatches.length };
+}
+
+export function mapEmployeeSalaryRecord(record) {
+  const salary = Number(record.SalaryRate);
+  if (!Number.isFinite(salary) || salary <= 0) return null;
+
+  const rankCandidates =
+    record.EmployeeTitle === "Fire Fighter"
+      ? ["f01", "f02"]
+      : [EMPLOYEE_TITLE_RANKS[record.EmployeeTitle]].filter(Boolean);
+
+  for (const currentRank of rankCandidates) {
+    const details = SALARY_STRUCTURE[currentRank];
+    if (details.type === "nonexempt") {
+      const stepIndex = details.steps.indexOf(salary);
+      if (stepIndex >= 0) {
+        return {
+          currentRank,
+          currentStep: stepIndex + 1,
+          currentSalary: null,
+        };
+      }
+    } else if (salary <= details.rangeMax) {
+      return { currentRank, currentStep: null, currentSalary: salary };
+    }
+  }
+
+  return null;
+}
+
 export function isExemptRank(rank) {
   return SALARY_STRUCTURE[rank]?.type === "exempt";
 }

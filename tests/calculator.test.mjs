@@ -11,7 +11,9 @@ import {
   calculateEstimate,
   coveredBenefitMonths,
   evaluateEligibility,
+  findEmployeeSalaryRecords,
   formatServiceYears,
+  mapEmployeeSalaryRecord,
   projectService,
   projectStructuredSalary,
   projectSickHours,
@@ -397,6 +399,116 @@ test("uses the FY 2025-2026 sworn fire salary structure", () => {
   assert.equal(SALARY_STRUCTURE.f05.steps.at(-1), 105_705);
   assert.equal(SALARY_STRUCTURE.f06.greenMax, 123_751);
   assert.equal(SALARY_STRUCTURE.f09.rangeMax, 265_045);
+});
+
+test("finds partial employee names locally without case or punctuation sensitivity", () => {
+  const records = [
+    { Name: "Smith, Jordan A.", FirstName: "Jordan", LastName: "Smith" },
+    { Name: "Smythe, Jo", FirstName: "Jo", LastName: "Smythe" },
+  ];
+
+  assert.deepEqual(
+    findEmployeeSalaryRecords(records, "jor sm").matches,
+    [records[0]],
+  );
+  assert.deepEqual(findEmployeeSalaryRecords(records, "--").matches, []);
+});
+
+test("sorts employee matches and reports totals beyond the display limit", () => {
+  const records = ["Zulu, Ava", "Able, Ava", "Baker, Ava"].map((Name) => ({
+    Name,
+  }));
+  const result = findEmployeeSalaryRecords(records, "av", 2);
+
+  assert.equal(result.total, 3);
+  assert.deepEqual(result.matches.map(({ Name }) => Name), [
+    "Able, Ava",
+    "Baker, Ava",
+  ]);
+});
+
+test("maps exact sworn titles and salary steps without guessing", () => {
+  assert.deepEqual(
+    mapEmployeeSalaryRecord({
+      EmployeeTitle: "Fire Fighter",
+      SalaryRate: 49_724,
+    }),
+    { currentRank: "f01", currentStep: 1, currentSalary: null },
+  );
+  assert.deepEqual(
+    mapEmployeeSalaryRecord({
+      EmployeeTitle: "Fire Fighter",
+      SalaryRate: 74_263,
+    }),
+    { currentRank: "f02", currentStep: 8, currentSalary: null },
+  );
+  assert.deepEqual(
+    mapEmployeeSalaryRecord({
+      EmployeeTitle: "Fire Engineer",
+      SalaryRate: 72_446,
+    }),
+    { currentRank: "f04", currentStep: 3, currentSalary: null },
+  );
+  assert.deepEqual(
+    mapEmployeeSalaryRecord({
+      EmployeeTitle: "Fire Captain",
+      SalaryRate: 83_540,
+    }),
+    { currentRank: "f05", currentStep: 2, currentSalary: null },
+  );
+  assert.deepEqual(
+    mapEmployeeSalaryRecord({
+      EmployeeTitle: "Senior Fire Inspector",
+      SalaryRate: 72_446,
+    }),
+    { currentRank: "f04", currentStep: 3, currentSalary: null },
+  );
+  assert.deepEqual(
+    mapEmployeeSalaryRecord({
+      EmployeeTitle: "Asst Fire Marshal",
+      SalaryRate: 83_540,
+    }),
+    { currentRank: "f05", currentStep: 2, currentSalary: null },
+  );
+
+  for (const [EmployeeTitle, currentRank, SalaryRate] of [
+    ["Battalion Fire Chief", "f06", 112_011],
+    ["Deputy Fire Marshal", "f06", 112_011],
+    ["Asst Fire Chief", "f07", 130_000],
+    ["Fire Marshal", "f07", 130_000],
+    ["Deputy Fire Chief", "f08", 146_443],
+    ["Fire Chief", "f09", 194_886],
+  ]) {
+    assert.deepEqual(mapEmployeeSalaryRecord({ EmployeeTitle, SalaryRate }), {
+      currentRank,
+      currentStep: null,
+      currentSalary: SalaryRate,
+    });
+  }
+});
+
+test("rejects unsupported, unmatched, and invalid salary records", () => {
+  assert.equal(
+    mapEmployeeSalaryRecord({
+      EmployeeTitle: "Fire Fighter",
+      SalaryRate: 76_906,
+    }),
+    null,
+  );
+  assert.equal(
+    mapEmployeeSalaryRecord({
+      EmployeeTitle: "Fire Protection Specialist",
+      SalaryRate: 60_000,
+    }),
+    null,
+  );
+  assert.equal(
+    mapEmployeeSalaryRecord({
+      EmployeeTitle: "Fire Chief",
+      SalaryRate: 300_000,
+    }),
+    null,
+  );
 });
 
 test("advances nonexempt steps on November 1 and stops at the maximum", () => {
