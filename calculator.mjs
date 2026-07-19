@@ -1,5 +1,4 @@
 export const HOURS_PER_SICK_MONTH = 160;
-export const MAX_SICK_ACCRUAL_PER_YEAR = 96;
 
 const NUMERIC_TOLERANCE = 1e-9;
 
@@ -116,10 +115,7 @@ export function projectSickHours({
     );
   }
 
-  const historicalNetRate = Math.min(
-    currentHours / currentWorkedYears,
-    MAX_SICK_ACCRUAL_PER_YEAR,
-  );
+  const historicalNetRate = currentHours / currentWorkedYears;
 
   return currentHours + historicalNetRate * remainingYears;
 }

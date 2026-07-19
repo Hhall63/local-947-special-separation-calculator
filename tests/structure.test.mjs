@@ -910,9 +910,10 @@ test("uses approved progressive disclosure layout and copy", async () => {
   }
   assert.ok(
     normalizedHtml.includes(
-      "When current sick hours are selected, the calculator divides current sick hours by completed GFD and other LGERS service to estimate a yearly net rate, caps that rate at 96 hours per year, and applies it through retirement.",
+      "When current sick hours are selected, the calculator uses your uncapped historical net rate based on current sick hours and completed GFD and other LGERS service, then applies that rate through retirement.",
     ),
   );
+  assert.ok(!normalizedHtml.includes("caps that rate at 96 hours per year"));
   assert.match(css, /\.form-subheading\s*\{[^}]*text-align:\s*center;/s);
   assert.match(css, /\.field--compact\s*\{[^}]*max-width:\s*18rem;/s);
   assert.match(

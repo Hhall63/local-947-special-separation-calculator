@@ -116,25 +116,14 @@ test("projects current sick hours at the historical net rate", () => {
   );
 });
 
-test("projects an exact 96-hour historical rate at the cap", () => {
-  assert.equal(
-    projectSickHours({
-      currentHours: 960,
-      currentWorkedYears: 10,
-      remainingYears: 2,
-    }),
-    1152,
-  );
-});
-
-test("caps historical sick accumulation at 96 hours per year", () => {
+test("projects current sick hours at an uncapped historical net rate", () => {
   assert.equal(
     projectSickHours({
       currentHours: 1200,
       currentWorkedYears: 10,
       remainingYears: 2,
     }),
-    1392,
+    1440,
   );
 });
 

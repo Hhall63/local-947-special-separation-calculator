@@ -49,7 +49,6 @@ The editable constants are grouped in `calculator.mjs`:
 - `RAISE_RATE`: projected annual July 1 raise rate
 - `BENEFIT_MULTIPLIER`: Fire SSA calculation multiplier
 - `CHECKS_PER_YEAR`: gross biweekly divisor
-- `MAX_SICK_ACCRUAL_PER_YEAR`: historical sick projection cap
 
 Run `node --test` after every change. Official rules and salary values must be
 reviewed before public release and whenever policy or pay schedules change.
