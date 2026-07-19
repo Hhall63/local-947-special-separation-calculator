@@ -27,6 +27,7 @@ let salaryRecords = null;
 let selectedSalaryRecord = null;
 let selectedSalaryMapping = null;
 let salaryLookupConfirmed = false;
+let salaryLookupRequestId = 0;
 
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -349,8 +350,11 @@ async function fetchSalaryRecords() {
         (record) =>
           !record ||
           typeof record.Name !== "string" ||
+          record.Name.trim().length === 0 ||
           typeof record.EmployeeTitle !== "string" ||
-          !Number.isFinite(Number(record.SalaryRate)),
+          record.EmployeeTitle.trim().length === 0 ||
+          typeof record.SalaryRate !== "number" ||
+          !Number.isFinite(record.SalaryRate),
       )
     ) {
       throw new Error("salary service record error");
@@ -375,9 +379,17 @@ function clearSalaryLookupResults() {
   selectedSalaryMapping = null;
 }
 
-function showSalaryRecord(record) {
+function showSalaryRecord(record, selectedButton) {
   selectedSalaryRecord = record;
   selectedSalaryMapping = mapEmployeeSalaryRecord(record);
+  for (const item of element("salary-lookup-results").children) {
+    const button = item.querySelector("button");
+    if (!button) continue;
+    const selected = button === selectedButton;
+    button.setAttribute("aria-pressed", String(selected));
+    button.textContent =
+      button.dataset.label + (selected ? " — Selected" : "");
+  }
   element("salary-lookup-confirmation-copy").textContent =
     record.Name +
     " — " +
@@ -407,13 +419,15 @@ function renderSalaryLookupResults({ matches, total }) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "secondary-button salary-lookup-result";
-    button.textContent =
+    button.dataset.label =
       record.Name +
       " — " +
       record.EmployeeTitle +
       ", " +
       currency.format(record.SalaryRate);
-    button.addEventListener("click", () => showSalaryRecord(record));
+    button.textContent = button.dataset.label;
+    button.setAttribute("aria-pressed", "false");
+    button.addEventListener("click", () => showSalaryRecord(record, button));
     item.append(button);
     list.append(item);
   }
@@ -826,18 +840,23 @@ element("search-current-records").addEventListener("click", async () => {
   element("salary-lookup-status").textContent =
     "Loading current City records…";
   element("search-current-records").disabled = true;
+  const requestId = ++salaryLookupRequestId;
   try {
     salaryRecords ??= await fetchSalaryRecords();
+    if (requestId !== salaryLookupRequestId) return;
     renderSalaryLookupResults(
       findEmployeeSalaryRecords(salaryRecords, query),
     );
   } catch {
+    if (requestId !== salaryLookupRequestId) return;
     salaryRecords = null;
     clearSalaryLookupResults();
     element("salary-lookup-status").textContent =
       "Current City records couldn't be loaded. Try again or enter your rank and salary yourself.";
   } finally {
-    element("search-current-records").disabled = false;
+    if (requestId === salaryLookupRequestId) {
+      element("search-current-records").disabled = false;
+    }
   }
 });
 
@@ -897,12 +916,14 @@ element("edit-answers").addEventListener("click", () => {
 });
 
 function resetCalculator() {
+  salaryLookupRequestId += 1;
   form.reset();
   salaryLookupConfirmed = false;
   selectedSalaryRecord = null;
   selectedSalaryMapping = null;
   element("salary-lookup-results").replaceChildren();
   element("salary-lookup-status").textContent = "";
+  element("search-current-records").disabled = false;
   element("use-salary-record").disabled = false;
   setHidden("salary-lookup-results-region", true);
   setHidden("salary-lookup-confirmation", true);

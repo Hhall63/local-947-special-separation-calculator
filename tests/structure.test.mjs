@@ -793,9 +793,13 @@ test("fetches Fire records without the typed name and imports only after confirm
     fixture.get("salary-lookup-results-heading"),
   );
 
-  fixture
+  const resultButton = fixture
     .get("salary-lookup-results")
-    .children[0].children[0].dispatch("click");
+    .children[0].children[0];
+  assert.equal(resultButton.getAttribute("aria-pressed"), "false");
+  resultButton.dispatch("click");
+  assert.equal(resultButton.getAttribute("aria-pressed"), "true");
+  assert.match(resultButton.textContent, /selected/i);
   assert.equal(fixture.get("current-rank").value, "");
   assert.equal(
     fixture.document.activeElement,
@@ -871,6 +875,42 @@ test("rejects ArcGIS errors and malformed pages without changing fields", async 
   const payloads = [
     { error: { message: "service error" } },
     { features: [{ attributes: null }], exceededTransferLimit: false },
+    {
+      features: [
+        {
+          attributes: {
+            Name: " ",
+            EmployeeTitle: "Fire Fighter",
+            SalaryRate: 56_434,
+          },
+        },
+      ],
+      exceededTransferLimit: false,
+    },
+    {
+      features: [
+        {
+          attributes: {
+            Name: "Smith, Jordan",
+            EmployeeTitle: " ",
+            SalaryRate: 56_434,
+          },
+        },
+      ],
+      exceededTransferLimit: false,
+    },
+    {
+      features: [
+        {
+          attributes: {
+            Name: "Smith, Jordan",
+            EmployeeTitle: "Fire Fighter",
+            SalaryRate: null,
+          },
+        },
+      ],
+      exceededTransferLimit: false,
+    },
   ];
   let requestCount = 0;
   const fixture = await controllerFixture({
@@ -884,13 +924,50 @@ test("rejects ArcGIS errors and malformed pages without changing fields", async 
   t.after(fixture.cleanup);
   fixture.get("employee-name-search").value = "smith";
 
-  await fixture.get("search-current-records").dispatchAsync("click");
-  assert.match(fixture.get("salary-lookup-status").textContent, /couldn't be loaded/i);
-  assert.equal(fixture.get("current-rank").value, "");
-  await fixture.get("search-current-records").dispatchAsync("click");
-  assert.match(fixture.get("salary-lookup-status").textContent, /couldn't be loaded/i);
-  assert.equal(fixture.get("current-rank").value, "");
-  assert.equal(requestCount, 2);
+  for (const _payload of payloads) {
+    await fixture.get("search-current-records").dispatchAsync("click");
+    assert.match(
+      fixture.get("salary-lookup-status").textContent,
+      /couldn't be loaded/i,
+    );
+    assert.equal(fixture.get("current-rank").value, "");
+  }
+  assert.equal(requestCount, payloads.length);
+});
+
+test("reset ignores a salary lookup response that finishes later", async (t) => {
+  let resolvePayload;
+  const payload = new Promise((resolve) => {
+    resolvePayload = resolve;
+  });
+  const fixture = await controllerFixture({
+    fetch: async () => ({
+      ok: true,
+      json: () => payload,
+    }),
+  });
+  t.after(fixture.cleanup);
+
+  fixture.get("employee-name-search").value = "smith";
+  const search = fixture.get("search-current-records").dispatchAsync("click");
+  fixture.get("clear-form-bottom").dispatch("click");
+  resolvePayload({
+    features: [
+      {
+        attributes: {
+          Name: "Smith, Jordan",
+          EmployeeTitle: "Fire Fighter",
+          SalaryRate: 56_434,
+        },
+      },
+    ],
+    exceededTransferLimit: false,
+  });
+  await search;
+
+  assert.equal(fixture.get("salary-lookup-status").textContent, "");
+  assert.equal(fixture.get("salary-lookup-results").children.length, 0);
+  assert.equal(fixture.get("salary-lookup-results-region").hidden, true);
 });
 
 test("validates lookup text and leaves manual entry available after an unmappable retry", async (t) => {
