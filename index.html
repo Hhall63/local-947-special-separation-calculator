@@ -465,12 +465,13 @@
                 Enter anticipated salary at retirement
               </label>
               <label>
-                <input type="radio" name="salary-mode" value="current" required />
-                Project current salary with 4% July 1 raises
-              </label>
-              <label>
-                <input type="radio" name="salary-mode" value="rank" required />
-                Use retirement rank and promotion date
+                <input
+                  type="radio"
+                  name="salary-mode"
+                  value="structure"
+                  required
+                />
+                Project from FY 2025-2026 salary structure
               </label>
             </div>
           </fieldset>
@@ -487,44 +488,75 @@
             />
           </div>
 
-          <div id="current-salary-field" class="field" hidden>
-            <label for="current-salary">Current annual salary</label>
-            <input
-              id="current-salary"
-              type="number"
-              min="0"
-              step="0.01"
-              inputmode="decimal"
-              required
-            />
-          </div>
-
-          <fieldset id="rank-fields" hidden>
-            <legend>Retirement rank and promotion date</legend>
+          <div id="salary-structure-fields" hidden>
             <div class="field">
-              <label for="rank">Rank at retirement</label>
-              <select id="rank" required>
-                <option value="">Select rank</option>
+              <label for="current-rank">Current rank</label>
+              <select id="current-rank" required>
+                <option value="">Select current rank</option>
               </select>
             </div>
-            <div class="field-row">
-              <div class="field">
-                <label for="promotion-month">Promotion month</label>
-                <select id="promotion-month" required>
-                  <option value="">Select month</option>
-                </select>
-              </div>
-              <div class="field">
-                <label for="promotion-year">Promotion year (4 digits)</label>
-                <input
-                  id="promotion-year"
-                  type="number"
-                  inputmode="numeric"
-                  required
-                />
-              </div>
+
+            <div id="current-step-field" class="field" hidden>
+              <label for="current-step">Current salary step</label>
+              <select id="current-step" required>
+                <option value="">Select current step</option>
+              </select>
             </div>
-          </fieldset>
+
+            <div id="current-exempt-salary-field" class="field" hidden>
+              <label for="current-exempt-salary">Current annual salary</label>
+              <input
+                id="current-exempt-salary"
+                type="number"
+                min="0"
+                step="0.01"
+                inputmode="decimal"
+                required
+              />
+            </div>
+
+            <div id="retirement-rank-field" class="field" hidden>
+              <label for="retirement-rank">Expected rank at retirement</label>
+              <select id="retirement-rank" required>
+                <option value="">Select retirement rank</option>
+              </select>
+            </div>
+
+            <div id="merit-rate-field" class="field field--compact" hidden>
+              <label for="merit-rate">Expected annual merit increase (%)</label>
+              <input
+                id="merit-rate"
+                type="number"
+                min="0"
+                step="0.1"
+                inputmode="decimal"
+                value="4"
+                required
+              />
+              <p class="hint">Defaults to 4% and can be adjusted.</p>
+            </div>
+
+            <fieldset id="promotion-date-fields" hidden>
+              <legend>Expected promotion date</legend>
+              <div class="field-row">
+                <div class="field">
+                  <label for="promotion-month">Promotion month</label>
+                  <select id="promotion-month" required>
+                    <option value="">Select month</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="promotion-year">Promotion year (4 digits)</label>
+                  <input
+                    id="promotion-year"
+                    type="number"
+                    inputmode="numeric"
+                    required
+                  />
+                </div>
+              </div>
+            </fieldset>
+          </div>
 
           <dl
             id="salary-preview"
@@ -534,6 +566,14 @@
             <div>
               <dt>Projected retirement salary</dt>
               <dd id="projected-salary">-</dd>
+            </div>
+            <div id="salary-position-row" hidden>
+              <dt>Projected final position</dt>
+              <dd id="salary-position">-</dd>
+            </div>
+            <div id="salary-maximum-row" hidden>
+              <dt>Salary progression maximum</dt>
+              <dd id="salary-maximum">-</dd>
             </div>
           </dl>
         </section>

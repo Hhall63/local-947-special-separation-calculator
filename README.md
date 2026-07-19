@@ -45,8 +45,7 @@ No server-side application or build step is required.
 
 The editable constants are grouped in `calculator.mjs`:
 
-- `RANK_SALARIES`: rank starting salaries
-- `RAISE_RATE`: projected annual July 1 raise rate
+- `SALARY_STRUCTURE`: FY 2025-2026 nonexempt steps and exempt ranges
 - `BENEFIT_MULTIPLIER`: Fire SSA calculation multiplier
 - `CHECKS_PER_YEAR`: gross biweekly divisor
 

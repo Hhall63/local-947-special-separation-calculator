@@ -1,11 +1,14 @@
 import {
-  RANK_SALARIES,
+  SALARY_STRUCTURE,
   ageAtRetirement,
   calculateEstimate,
   calculateRetirementSalary,
   calculateService,
   evaluateEligibility,
   formatServiceYears,
+  isExemptRank,
+  projectStructuredSalary,
+  retirementDateForYear,
   toServiceYears,
   validateInput,
 } from "./calculator.mjs";
@@ -24,6 +27,11 @@ const currency = new Intl.NumberFormat("en-US", {
 });
 const hoursFormat = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2,
+});
+const dateFormat = new Intl.DateTimeFormat("en-US", {
+  month: "long",
+  day: "numeric",
+  year: "numeric",
 });
 
 function nonnegativeHoursForDisplay(hours) {
@@ -69,10 +77,13 @@ const errorTargets = {
   "benefit-months": "benefit-months",
   "salary-mode": "salary-mode-group",
   "anticipated-salary": "anticipated-salary",
-  "current-salary": "current-salary",
-  rank: "rank",
+  "current-rank": "current-rank",
+  "current-step": "current-step",
+  "current-exempt-salary": "current-exempt-salary",
+  "retirement-rank": "retirement-rank",
   "promotion-month": "promotion-month",
   "promotion-year": "promotion-year",
+  "merit-rate": "merit-rate",
 };
 
 const serviceErrorKeys = new Set([
@@ -90,10 +101,13 @@ const salaryErrorKeys = new Set([
   "retirement-year",
   "salary-mode",
   "anticipated-salary",
-  "current-salary",
-  "rank",
+  "current-rank",
+  "current-step",
+  "current-exempt-salary",
+  "retirement-rank",
   "promotion-month",
   "promotion-year",
+  "merit-rate",
 ]);
 
 function element(id) {
@@ -128,20 +142,21 @@ function collectInput() {
   const salaryMode = radioValue("salary-mode");
   let salary;
 
-  if (salaryMode === "rank") {
+  if (salaryMode === "structure") {
     salary = {
       mode: salaryMode,
-      rank: element("rank").value,
+      currentRank: element("current-rank").value,
+      currentStep: numberValue("current-step"),
+      currentSalary: numberValue("current-exempt-salary"),
+      retirementRank: element("retirement-rank").value,
       promotionMonth: numberValue("promotion-month"),
       promotionYear: numberValue("promotion-year"),
+      meritRate: numberValue("merit-rate"),
     };
   } else {
     salary = {
       mode: salaryMode,
-      amount:
-        salaryMode === "anticipated"
-          ? numberValue("anticipated-salary")
-          : numberValue("current-salary"),
+      amount: numberValue("anticipated-salary"),
     };
   }
 
@@ -190,8 +205,34 @@ function updateConditionalFields(errors) {
 
   const salaryMode = radioValue("salary-mode");
   setHidden("anticipated-salary-field", salaryMode !== "anticipated");
-  setHidden("current-salary-field", salaryMode !== "current");
-  setHidden("rank-fields", salaryMode !== "rank");
+  const structureMode = salaryMode === "structure";
+  setHidden("salary-structure-fields", !structureMode);
+  const currentRank = element("current-rank").value;
+  const retirementRank = element("retirement-rank").value;
+  const currentDetails = SALARY_STRUCTURE[currentRank];
+  const retirementDetails = SALARY_STRUCTURE[retirementRank];
+  populateStepChoices(currentRank);
+  setHidden(
+    "current-step-field",
+    !structureMode || currentDetails?.type !== "nonexempt",
+  );
+  setHidden(
+    "current-exempt-salary-field",
+    !structureMode || currentDetails?.type !== "exempt",
+  );
+  setHidden("retirement-rank-field", !structureMode || !currentDetails);
+  setHidden(
+    "promotion-date-fields",
+    !structureMode ||
+      !currentDetails ||
+      !retirementDetails ||
+      currentRank === retirementRank,
+  );
+  setHidden(
+    "merit-rate-field",
+    !structureMode ||
+      (!isExemptRank(currentRank) && !isExemptRank(retirementRank)),
+  );
   setHidden(
     "salary-preview",
     !errors || !salaryMode || hasAnyError(errors, salaryErrorKeys),
@@ -211,13 +252,37 @@ function updateConditionalFields(errors) {
         : "Sick hours";
 }
 
+function populateStepChoices(rank) {
+  const select = element("current-step");
+  if (select.dataset.rank === rank) return;
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = "Select current step";
+  select.replaceChildren(placeholder);
+  const details = SALARY_STRUCTURE[rank];
+  if (details?.type === "nonexempt") {
+    details.steps.forEach((salary, index) => {
+      const option = document.createElement("option");
+      option.value = String(index + 1);
+      option.textContent =
+        "Step " + (index + 1) + " - " + currency.format(salary);
+      select.append(option);
+    });
+  }
+  select.value = "";
+  select.dataset.rank = rank;
+}
+
 function populateChoices() {
-  const rank = element("rank");
-  for (const [value, details] of Object.entries(RANK_SALARIES)) {
-    const option = document.createElement("option");
-    option.value = value;
-    option.textContent = details.label;
-    rank.append(option);
+  for (const selectId of ["current-rank", "retirement-rank"]) {
+    const select = element(selectId);
+    for (const [value, details] of Object.entries(SALARY_STRUCTURE)) {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent =
+        "F" + String(details.grade).padStart(2, "0") + " - " + details.label;
+      select.append(option);
+    }
   }
 
   const promotionMonth = element("promotion-month");
@@ -300,6 +365,8 @@ function clearPreview() {
     "eligibility-service",
     "benefit-service-value",
     "projected-salary",
+    "salary-position",
+    "salary-maximum",
   ]) {
     element(id).textContent = "-";
   }
@@ -436,12 +503,38 @@ function renderPreview(announce = false) {
   element("benefit-service-value").textContent =
     creditableYears === null ? "-" : formatServiceYears(creditableYears);
 
-  element("projected-salary").textContent = hasAnyError(
-    errors,
-    salaryErrorKeys,
-  )
-    ? "-"
-    : currency.format(calculateRetirementSalary(input));
+  const salaryValid = !hasAnyError(errors, salaryErrorKeys);
+  const salaryProjection =
+    salaryValid && input.salary.mode === "structure"
+      ? projectStructuredSalary({
+          ...input.salary,
+          today: new Date(),
+          retirementDate: retirementDateForYear(input.retirementYear),
+        })
+      : null;
+  element("projected-salary").textContent = salaryValid
+    ? currency.format(
+        salaryProjection?.salary ?? calculateRetirementSalary(input),
+      )
+    : "-";
+  setHidden("salary-position-row", !salaryProjection);
+  setHidden("salary-maximum-row", !salaryProjection);
+  if (salaryProjection) {
+    const details = SALARY_STRUCTURE[salaryProjection.rank];
+    element("salary-position").textContent =
+      "F" +
+      String(details.grade).padStart(2, "0") +
+      " - " +
+      (salaryProjection.step === null
+        ? "Exempt"
+        : "Step " + salaryProjection.step);
+    element("salary-maximum").textContent =
+      salaryProjection.maximumStatus === "already"
+        ? "Already at maximum"
+        : salaryProjection.maximumStatus === "reached"
+          ? "Reached " + dateFormat.format(salaryProjection.maximumDate)
+          : "Does not reach maximum before retirement";
+  }
 
   if (announce) {
     const updated = [];

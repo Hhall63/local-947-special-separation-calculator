@@ -717,10 +717,6 @@ test("validates every calculator input class", () => {
     ["benefit-years", (input) => { input.benefitService = { mode: "manual", years: 0, months: 0 }; }],
     ["benefit-months", (input) => { input.benefitService = { mode: "manual", years: 1, months: 12 }; }],
     ["anticipated-salary", (input) => { input.salary = { mode: "anticipated", amount: 0 }; }],
-    ["current-salary", (input) => { input.salary = { mode: "current", amount: 0 }; }],
-    ["rank", (input) => { input.salary = { mode: "rank", rank: "", promotionMonth: 1, promotionYear: 2029 }; }],
-    ["promotion-month", (input) => { input.salary = { mode: "rank", rank: "captain", promotionMonth: 0, promotionYear: 2029 }; }],
-    ["promotion-year", (input) => { input.salary = { mode: "rank", rank: "captain", promotionMonth: 2, promotionYear: 2030 }; }],
   ];
 
   for (const [expectedKey, mutate] of cases) {
@@ -734,12 +730,12 @@ test("validates every calculator input class", () => {
 test("accepts every supported sick and salary mode", () => {
   const salaryCases = [
     { mode: "anticipated", amount: 100_000 },
-    { mode: "current", amount: 90_000 },
     {
-      mode: "rank",
-      rank: "captain",
-      promotionMonth: 1,
-      promotionYear: 2029,
+      mode: "structure",
+      currentRank: "f02",
+      currentStep: 4,
+      retirementRank: "f02",
+      meritRate: 4,
     },
   ];
   const sickCases = [
@@ -754,6 +750,63 @@ test("accepts every supported sick and salary mode", () => {
       input.sick = sick;
       assert.deepEqual(validateInput(input, new Date(2026, 6, 17)), {});
     }
+  }
+});
+
+test("accepts valid nonexempt and exempt structured salary inputs", () => {
+  const salaryCases = [
+    {
+      mode: "structure",
+      currentRank: "f02",
+      currentStep: 4,
+      retirementRank: "f02",
+      meritRate: 4,
+    },
+    {
+      mode: "structure",
+      currentRank: "f06",
+      currentSalary: 110_000,
+      retirementRank: "f07",
+      promotionMonth: 6,
+      promotionYear: 2028,
+      meritRate: 3.5,
+    },
+  ];
+
+  for (const salary of salaryCases) {
+    const input = structuredClone(validInput());
+    input.salary = salary;
+    assert.deepEqual(validateInput(input, new Date(2026, 6, 17)), {});
+  }
+});
+
+test("validates structured salary ranks, pay, merit, and promotion", () => {
+  const cases = [
+    ["current-rank", { currentRank: "" }],
+    ["current-step", { currentRank: "f02", currentStep: 9 }],
+    ["current-exempt-salary", { currentRank: "f06", currentSalary: 0 }],
+    ["current-exempt-salary", { currentRank: "f06", currentSalary: 140_000 }],
+    ["merit-rate", { currentRank: "f06", currentSalary: 110_000, meritRate: -1 }],
+    ["retirement-rank", { currentRank: "f05", currentStep: 2, retirementRank: "f02" }],
+    ["promotion-month", { retirementRank: "f04", promotionMonth: 0 }],
+    ["promotion-year", { retirementRank: "f04", promotionMonth: 6, promotionYear: 2026 }],
+    ["promotion-year", { retirementRank: "f04", promotionMonth: 2, promotionYear: 2030 }],
+  ];
+
+  for (const [expectedKey, override] of cases) {
+    const input = structuredClone(validInput());
+    input.salary = {
+      mode: "structure",
+      currentRank: "f02",
+      currentStep: 4,
+      retirementRank: "f02",
+      meritRate: 4,
+      ...override,
+    };
+    assert.ok(
+      validateInput(input, new Date(2026, 6, 17))[expectedKey],
+      expectedKey,
+    );
   }
 });
 
@@ -813,18 +866,21 @@ test("validation uses creditable-years terminology", () => {
   );
 });
 
-test("rejects a promotion date on or after retirement", () => {
+test("rejects a structured promotion date on or after retirement", () => {
   const input = validInput();
   input.salary = {
-    mode: "rank",
-    rank: "captain",
+    mode: "structure",
+    currentRank: "f02",
+    currentStep: 4,
+    retirementRank: "f04",
     promotionMonth: 2,
     promotionYear: 2030,
+    meritRate: 4,
   };
 
   assert.equal(
     validateInput(input, new Date(2026, 6, 17))["promotion-year"],
-    "Enter a promotion month and year before retirement.",
+    "Enter a promotion month and year after today and before retirement.",
   );
 });
 
@@ -969,22 +1025,31 @@ test("integrated estimates preserve service and allowance identities", () => {
       otherLgers: { years: 2, months: 6 },
       sick: { mode: "current", hours: 320.75 },
       benefitService: { mode: "calculated" },
-      salary: { mode: "current", amount: 90_000 },
+      salary: {
+        mode: "structure",
+        currentRank: "f06",
+        currentSalary: 90_000,
+        retirementRank: "f06",
+        meritRate: 4,
+      },
       expectedSickMonths: 3,
-      expectedRetirementSalary: 101_237.76000000001,
+      expectedRetirementSalary: 105_287.27040000001,
     },
     {
       otherLgers: null,
       sick: { mode: "retirement", hours: 8 },
       benefitService: { mode: "manual", years: 28, months: 6 },
       salary: {
-        mode: "rank",
-        rank: "captain",
+        mode: "structure",
+        currentRank: "f05",
+        currentStep: 1,
+        retirementRank: "f06",
         promotionMonth: 1,
         promotionYear: 2029,
+        meritRate: 4,
       },
       expectedSickMonths: 1,
-      expectedRetirementSalary: 83_540.08,
+      expectedRetirementSalary: 97_801.6,
     },
   ];
 

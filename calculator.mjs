@@ -268,28 +268,6 @@ export function evaluateEligibility({
   };
 }
 
-export const RANK_SALARIES = Object.freeze({
-  srff: { label: "SrFF", salary: 56_434 },
-  engineerInspector: {
-    label: "Engineer / Sr Fire Insp.",
-    salary: 66_980,
-  },
-  captain: {
-    label: "Captain / Asst. Fire Marshal",
-    salary: 80_327,
-  },
-  battalionChief: {
-    label: "Batt. Chief / Dep. Fire Marshal",
-    salary: 94_040,
-  },
-  assistantChief: {
-    label: "Assistant Fire Chief / Fire Marshal",
-    salary: 120_373,
-  },
-  deputyChief: { label: "Deputy Fire Chief", salary: 135_395 },
-  fireChief: { label: "Fire Chief", salary: 180_183 },
-});
-
 export const SALARY_STRUCTURE = Object.freeze({
   f01: Object.freeze({
     grade: 1,
@@ -371,7 +349,6 @@ export function isExemptRank(rank) {
   return SALARY_STRUCTURE[rank]?.type === "exempt";
 }
 
-export const RAISE_RATE = 0.04;
 export const BENEFIT_MULTIPLIER = 0.0085;
 export const CHECKS_PER_YEAR = 26;
 
@@ -503,50 +480,6 @@ export function retirementDateForYear(year) {
   return new Date(year, 0, 31);
 }
 
-export function countJulyRaises({ baseDate, retirementDate }) {
-  const base = dateNumber(baseDate);
-  const retirement = dateNumber(retirementDate);
-  let count = 0;
-
-  for (
-    let year = baseDate.getFullYear();
-    year <= retirementDate.getFullYear();
-    year += 1
-  ) {
-    const raise = Date.UTC(year, 6, 1);
-    if (raise > base && raise < retirement) {
-      count += 1;
-    }
-  }
-
-  return count;
-}
-
-export function projectSalary({
-  mode,
-  amount,
-  rank,
-  promotionMonth,
-  promotionYear,
-  today,
-  retirementDate,
-}) {
-  if (mode === "anticipated") {
-    return amount;
-  }
-
-  let baseSalary = amount;
-  let baseDate = today;
-
-  if (mode === "rank") {
-    baseSalary = RANK_SALARIES[rank].salary;
-    baseDate = new Date(promotionYear, promotionMonth - 1, 1);
-  }
-
-  const raises = countJulyRaises({ baseDate, retirementDate });
-  return baseSalary * (1 + RAISE_RATE) ** raises;
-}
-
 export function coveredBenefitMonths({
   birthYear,
   birthMonth,
@@ -608,19 +541,13 @@ export function calculateService(input, today = new Date()) {
 }
 
 export function calculateRetirementSalary(input, today = new Date()) {
+  if (input.salary.mode === "anticipated") return input.salary.amount;
   const retirementDate = retirementDateForYear(input.retirementYear);
-  if (input.salary.mode === "structure") {
-    return projectStructuredSalary({
-      ...input.salary,
-      today,
-      retirementDate,
-    }).salary;
-  }
-  return projectSalary({
+  return projectStructuredSalary({
     ...input.salary,
     today,
     retirementDate,
-  });
+  }).salary;
 }
 
 export function calculateEstimate(input, today = new Date()) {
@@ -802,49 +729,84 @@ export function validateInput(input, today = new Date()) {
 
   if (
     !input.salary ||
-    !["anticipated", "current", "rank"].includes(input.salary.mode)
+    !["anticipated", "structure"].includes(
+      input.salary.mode,
+    )
   ) {
     errors["salary-mode"] = "Choose a salary estimate method.";
-  } else if (
-    input.salary.mode === "anticipated" ||
-    input.salary.mode === "current"
-  ) {
-    const field =
-      input.salary.mode === "anticipated"
-        ? "anticipated-salary"
-        : "current-salary";
-    if (!Number.isFinite(input.salary.amount) || input.salary.amount <= 0) {
-      errors[field] = "Enter an annual salary greater than zero.";
-    }
-  } else {
-    if (!RANK_SALARIES[input.salary.rank]) {
-      errors.rank = "Choose a retirement rank.";
-    }
-    if (
-      !Number.isInteger(input.salary.promotionMonth) ||
-      input.salary.promotionMonth < 1 ||
-      input.salary.promotionMonth > 12
-    ) {
-      errors["promotion-month"] = "Choose a promotion month.";
-    }
-    if (
-      !Number.isInteger(input.salary.promotionYear) ||
-      input.salary.promotionYear < 1900
-    ) {
-      errors["promotion-year"] = "Enter a four-digit promotion year.";
+  } else if (input.salary.mode === "structure") {
+    const current = SALARY_STRUCTURE[input.salary.currentRank];
+    const retirement = SALARY_STRUCTURE[input.salary.retirementRank];
+    if (!current) {
+      errors["current-rank"] = "Choose your current rank.";
+    } else if (current.type === "nonexempt") {
+      if (
+        !Number.isInteger(input.salary.currentStep) ||
+        input.salary.currentStep < 1 ||
+        input.salary.currentStep > current.steps.length
+      ) {
+        errors["current-step"] = "Choose your current salary step.";
+      }
     } else if (
-      retirementDate &&
-      Number.isInteger(input.salary.promotionMonth) &&
-      dateNumber(
-        new Date(
+      !Number.isFinite(input.salary.currentSalary) ||
+      input.salary.currentSalary <= 0 ||
+      input.salary.currentSalary > current.rangeMax
+    ) {
+      errors["current-exempt-salary"] =
+        "Enter your current annual salary within the published range.";
+    }
+
+    if (!retirement) {
+      errors["retirement-rank"] = "Choose your expected retirement rank.";
+    } else if (current && retirement.grade < current.grade) {
+      errors["retirement-rank"] =
+        "Choose your current rank or a higher retirement rank.";
+    }
+
+    if (
+      (current?.type === "exempt" || retirement?.type === "exempt") &&
+      (!Number.isFinite(input.salary.meritRate) || input.salary.meritRate < 0)
+    ) {
+      errors["merit-rate"] = "Enter an expected merit rate of 0% or more.";
+    }
+
+    if (current && retirement && current !== retirement) {
+      if (
+        !Number.isInteger(input.salary.promotionMonth) ||
+        input.salary.promotionMonth < 1 ||
+        input.salary.promotionMonth > 12
+      ) {
+        errors["promotion-month"] = "Choose a promotion month.";
+      }
+      if (
+        !Number.isInteger(input.salary.promotionYear) ||
+        input.salary.promotionYear < 1900
+      ) {
+        errors["promotion-year"] = "Enter a four-digit promotion year.";
+      } else if (
+        retirementDate &&
+        Number.isInteger(input.salary.promotionMonth) &&
+        input.salary.promotionMonth >= 1 &&
+        input.salary.promotionMonth <= 12
+      ) {
+        const promotionDate = new Date(
           input.salary.promotionYear,
           input.salary.promotionMonth - 1,
           1,
-        ),
-      ) >= dateNumber(retirementDate)
-    ) {
-      errors["promotion-year"] =
-        "Enter a promotion month and year before retirement.";
+        );
+        if (
+          dateNumber(promotionDate) <= dateNumber(today) ||
+          dateNumber(promotionDate) >= dateNumber(retirementDate)
+        ) {
+          errors["promotion-year"] =
+            "Enter a promotion month and year after today and before retirement.";
+        }
+      }
+    }
+  } else if (input.salary.mode === "anticipated") {
+    const field = "anticipated-salary";
+    if (!Number.isFinite(input.salary.amount) || input.salary.amount <= 0) {
+      errors[field] = "Enter an annual salary greater than zero.";
     }
   }
 

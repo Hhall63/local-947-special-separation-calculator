@@ -22,10 +22,13 @@ async function controllerFixture() {
     "benefit-years": "input",
     "benefit-months": "input",
     "anticipated-salary": "input",
-    "current-salary": "input",
-    rank: "select",
+    "current-rank": "select",
+    "current-step": "select",
+    "current-exempt-salary": "input",
+    "retirement-rank": "select",
     "promotion-month": "select",
     "promotion-year": "input",
+    "merit-rate": "input",
     "clear-form-top": "button",
     "clear-form-bottom": "button",
     "calculate-button": "button",
@@ -156,8 +159,7 @@ async function controllerFixture() {
   ]);
   addRadioGroup("salary-mode", "salary-mode-group", [
     "anticipated",
-    "current",
-    "rank",
+    "structure",
   ]);
 
   form.querySelector = (selector) => {
@@ -194,6 +196,8 @@ async function controllerFixture() {
     get(id).value = "0";
     get(id).defaultValue = "0";
   }
+  get("merit-rate").value = "4";
+  get("merit-rate").defaultValue = "4";
 
   globalThis.document = document;
   controllerFixtureId += 1;
@@ -250,7 +254,7 @@ test("calculator HTML exposes required form and accessibility hooks", async () =
     'id="other-service-fields"',
     'id="sick-hours"',
     'id="manual-service-fields"',
-    'id="rank-fields"',
+    'id="salary-structure-fields"',
     'id="result"',
     'aria-live="polite"',
     'src="app.mjs"',
@@ -304,8 +308,10 @@ test("top and bottom Clear all fields controls share the complete reset", async 
     "sick-hours",
     "benefit-years",
     "anticipated-salary",
-    "current-salary",
-    "rank",
+    "current-rank",
+    "current-step",
+    "current-exempt-salary",
+    "retirement-rank",
     "promotion-month",
     "promotion-year",
   ];
@@ -338,8 +344,10 @@ test("top and bottom Clear all fields controls share the complete reset", async 
       "benefit-years": "2",
       "benefit-months": "9",
       "anticipated-salary": "100000",
-      "current-salary": "90000",
-      rank: "firefighter",
+      "current-rank": "f02",
+      "current-step": "3",
+      "current-exempt-salary": "90000",
+      "retirement-rank": "f05",
       "promotion-month": "6",
       "promotion-year": "2025",
     })) {
@@ -385,8 +393,12 @@ test("top and bottom Clear all fields controls share the complete reset", async 
     assert.equal(fixture.get("other-service-fields").hidden, true);
     assert.equal(fixture.get("manual-service-fields").hidden, true);
     assert.equal(fixture.get("anticipated-salary-field").hidden, true);
-    assert.equal(fixture.get("current-salary-field").hidden, true);
-    assert.equal(fixture.get("rank-fields").hidden, true);
+    assert.equal(fixture.get("salary-structure-fields").hidden, true);
+    assert.equal(fixture.get("current-step-field").hidden, true);
+    assert.equal(fixture.get("current-exempt-salary-field").hidden, true);
+    assert.equal(fixture.get("retirement-rank-field").hidden, true);
+    assert.equal(fixture.get("promotion-date-fields").hidden, true);
+    assert.equal(fixture.get("merit-rate-field").hidden, true);
     assert.equal(fixture.get("sick-hours-field").hidden, true);
     assert.equal(fixture.get("service-preview").hidden, true);
     assert.equal(fixture.get("benefit-service-details").hidden, true);
@@ -400,6 +412,7 @@ test("top and bottom Clear all fields controls share the complete reset", async 
     for (const fieldId of emptyDefaults) {
       assert.equal(fixture.get(fieldId).value, "");
     }
+    assert.equal(fixture.get("merit-rate").value, "4");
     for (const groupId of radioGroups) {
       assert.ok(
         fixture.get(groupId).children.every((control) => !control.checked),
@@ -597,6 +610,37 @@ test("progressively reveals dependent calculator inputs and summaries", async (t
   assert.equal(fixture.get("salary-preview").hidden, false);
 });
 
+test("reveals salary structure fields and renders step progression", async (t) => {
+  const fixture = await controllerFixture();
+  t.after(fixture.cleanup);
+
+  assert.equal(fixture.get("salary-structure-fields").hidden, true);
+  fixture.setRadio("salary-mode", "structure");
+  fixture.form.dispatch("change", fixture.get("salary-mode-group"));
+  assert.equal(fixture.get("salary-structure-fields").hidden, false);
+
+  fixture.get("current-rank").value = "f02";
+  fixture.form.dispatch("change", fixture.get("current-rank"));
+  assert.equal(fixture.get("current-step-field").hidden, false);
+  assert.equal(fixture.get("current-exempt-salary-field").hidden, true);
+  assert.equal(fixture.get("retirement-rank-field").hidden, false);
+  assert.equal(fixture.get("merit-rate-field").hidden, true);
+
+  fixture.get("retirement-year").value = "2028";
+  fixture.get("current-step").value = "7";
+  fixture.get("retirement-rank").value = "f02";
+  fixture.form.dispatch("input", fixture.get("current-step"));
+
+  assert.equal(fixture.get("promotion-date-fields").hidden, true);
+  assert.equal(fixture.get("salary-preview").hidden, false);
+  assert.equal(fixture.get("projected-salary").textContent, "$74,263.00");
+  assert.equal(fixture.get("salary-position").textContent, "F02 - Step 8");
+  assert.equal(
+    fixture.get("salary-maximum").textContent,
+    "Reached November 1, 2026",
+  );
+});
+
 test("controller gates allowance inputs and renders eligibility evidence", async () => {
   const app = await readFile(new URL("app.mjs", rootUrl), "utf8");
 
@@ -772,9 +816,9 @@ test("uses approved creditable-service copy and defaults", async () => {
   assert.match(html, /class="form-group"/);
 });
 
-test("rank choices show labels without starting pay", async () => {
+test("rank choices show grade and label without starting pay", async () => {
   const app = await readFile(new URL("app.mjs", rootUrl), "utf8");
-  assert.ok(app.includes("option.textContent = details.label;"));
+  assert.ok(app.includes('"F" + String(details.grade).padStart(2, "0")'));
   assert.ok(
     !app.includes('details.label + " - " + currency.format(details.salary)'),
   );
@@ -945,7 +989,7 @@ test("README documents test, preview, privacy, and maintenance", async () => {
     "node --test",
     "http.server 8080",
     "No entered data is stored or transmitted",
-    "RANK_SALARIES",
+    "SALARY_STRUCTURE",
     "BENEFIT_MULTIPLIER",
   ]) {
     assert.ok(readme.includes(fragment), "Missing README detail: " + fragment);
