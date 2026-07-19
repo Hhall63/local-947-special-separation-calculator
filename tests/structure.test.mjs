@@ -831,6 +831,17 @@ test("uses allowance copy, official guidance, and the approved result order", as
     />[^<]*\bbenefit(s)?\b[^<]*</i,
     "Visible interface copy must use allowance",
   );
+
+  assert.equal(
+    (html.match(/class="estimate-notice(?: estimate-notice--result)?"/g) ?? [])
+      .length,
+    2,
+  );
+  assert.equal(
+    (html.match(/Information provided by this calculator is an estimate only\./g) ?? [])
+      .length,
+    2,
+  );
 });
 
 test("uses one preview status region and accessible result focus", async () => {
