@@ -7,7 +7,10 @@ estimate apparent Fire SSA eligibility and benefit amounts.
 
 No entered data is stored or transmitted. The calculator has no backend,
 analytics, cookies, local storage, or network submission. All calculations run
-in the user's browser.
+in the user's browser. If a member requests salary lookup, the browser retrieves
+public Fire salary records directly from the City of Greensboro and searches
+names locally. The typed name is not sent to the City, and refreshing or closing
+the page discards the retrieved records.
 
 ## Preview locally
 

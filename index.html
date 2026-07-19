@@ -41,7 +41,10 @@
           service, sick hours, and salary or rank information ready.
         </p>
         <p class="privacy-note">
-          Reloading this page clears your entries because nothing is stored.
+          Your entries stay in this browser. If you use the salary lookup, this
+          page retrieves public Fire salary records from the City and searches
+          names locally. Reloading this page clears your entries and the
+          retrieved records.
         </p>
         <p>
           Review definitions and retirement rules in the
@@ -502,7 +505,107 @@
           </div>
 
           <div id="salary-structure-fields" hidden>
-            <div class="field">
+            <fieldset
+              id="current-entry-mode-group"
+              role="radiogroup"
+              aria-required="true"
+            >
+              <legend>How would you like to enter your current information?</legend>
+              <div class="choice-stack">
+                <label>
+                  <input
+                    type="radio"
+                    name="current-entry-mode"
+                    value="manual"
+                    checked
+                    required
+                  />
+                  Enter my rank and salary myself
+                </label>
+                <label>
+                  <input
+                    type="radio"
+                    name="current-entry-mode"
+                    value="lookup"
+                    required
+                  />
+                  Find me in current City records
+                </label>
+              </div>
+            </fieldset>
+
+            <div
+              id="salary-lookup-fields"
+              class="salary-lookup calculation-panel"
+              hidden
+            >
+              <div class="field">
+                <label for="employee-name-search">Your name</label>
+                <input
+                  id="employee-name-search"
+                  type="search"
+                  autocomplete="name"
+                  aria-describedby="salary-lookup-help salary-lookup-status"
+                  required
+                />
+                <p id="salary-lookup-help" class="hint">
+                  Enter at least two letters. The calculator retrieves current
+                  public Fire salary records, then searches your name only in
+                  this browser.
+                </p>
+              </div>
+              <button
+                id="search-current-records"
+                class="secondary-button"
+                type="button"
+              >
+                Search current records
+              </button>
+              <p
+                id="salary-lookup-status"
+                class="hint"
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+              ></p>
+              <div id="salary-lookup-results-region" hidden>
+                <h3 id="salary-lookup-results-heading" tabindex="-1">
+                  Matching records
+                </h3>
+                <ul
+                  id="salary-lookup-results"
+                  class="salary-lookup-results"
+                ></ul>
+              </div>
+              <div
+                id="salary-lookup-confirmation"
+                class="salary-lookup-confirmation"
+                hidden
+              >
+                <h3 id="salary-lookup-confirmation-title" tabindex="-1">
+                  Confirm this record
+                </h3>
+                <p id="salary-lookup-confirmation-copy"></p>
+                <button
+                  id="use-salary-record"
+                  class="secondary-button"
+                  type="button"
+                >
+                  Use this information
+                </button>
+              </div>
+              <p class="hint">
+                Source:
+                <a
+                  href="https://data.greensboro-nc.gov/datasets/greensboro::people-culture-current-employee-salaries/explore"
+                  target="_blank"
+                  rel="noopener"
+                >City of Greensboro current employee salaries (opens in a new
+                  tab)</a>.
+              </p>
+            </div>
+
+            <div id="current-rank-field" class="field">
               <label for="current-rank">Current rank</label>
               <select id="current-rank" required>
                 <option value="">Select current rank</option>

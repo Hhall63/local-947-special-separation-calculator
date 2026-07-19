@@ -381,6 +381,34 @@ select:hover {
   margin: 0;
 }
 
+.salary-lookup {
+  margin-block-end: var(--space-4);
+}
+
+.salary-lookup h3 {
+  margin-block: var(--space-3) var(--space-2);
+  color: var(--navy);
+  font-size: 1rem;
+}
+
+.salary-lookup-results {
+  display: grid;
+  gap: var(--space-2);
+  padding: 0;
+  list-style: none;
+}
+
+.salary-lookup-result {
+  width: 100%;
+  text-align: start;
+}
+
+.salary-lookup-confirmation {
+  margin-block-start: var(--space-3);
+  padding-block-start: var(--space-3);
+  border-block-start: 1px solid var(--border);
+}
+
 .salary-dialog {
   width: min(72rem, calc(100% - 2rem));
   max-height: calc(100dvh - 2rem);

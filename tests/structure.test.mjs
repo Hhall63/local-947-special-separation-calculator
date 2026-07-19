@@ -275,6 +275,52 @@ test("calculator HTML exposes required form and accessibility hooks", async () =
   }
 });
 
+test("includes the accessible live salary lookup and local-search privacy copy", async () => {
+  const html = await readFile(new URL("index.html", rootUrl), "utf8");
+  const css = await readFile(new URL("styles.css", rootUrl), "utf8");
+  const readme = await readFile(new URL("README.md", rootUrl), "utf8");
+  const normalizedReadme = readme.replace(/\s+/g, " ");
+
+  for (const fragment of [
+    'id="current-entry-mode-group"',
+    'name="current-entry-mode"',
+    'value="manual"',
+    "Enter my rank and salary myself",
+    'value="lookup"',
+    "Find me in current City records",
+    'id="salary-lookup-fields"',
+    'id="employee-name-search"',
+    'id="search-current-records"',
+    'id="salary-lookup-status"',
+    'id="salary-lookup-results"',
+    'id="salary-lookup-confirmation"',
+    'id="use-salary-record"',
+    'href="https://data.greensboro-nc.gov/datasets/greensboro::people-culture-current-employee-salaries/explore"',
+  ]) {
+    assert.ok(html.includes(fragment), "Missing salary lookup HTML: " + fragment);
+  }
+  assert.match(
+    html,
+    /name="current-entry-mode"[\s\S]*?value="manual"[\s\S]*?checked/,
+  );
+  assert.match(
+    html,
+    /id="salary-lookup-status"[^>]*role="status"[^>]*aria-live="polite"/,
+  );
+  assert.match(css, /\.salary-lookup\s*\{/);
+  assert.match(css, /\.salary-lookup-result\s*\{/);
+  for (const fragment of [
+    "No entered data is stored or transmitted",
+    "retrieves public Fire salary records",
+    "searches names locally",
+  ]) {
+    assert.ok(
+      normalizedReadme.includes(fragment),
+      "Missing privacy detail: " + fragment,
+    );
+  }
+});
+
 test("top and bottom Clear all fields controls share the complete reset", async (t) => {
   const html = await readFile(new URL("index.html", rootUrl), "utf8");
   assert.doesNotMatch(html, /A private, plain-language estimate\./);
