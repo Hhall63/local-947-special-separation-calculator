@@ -425,22 +425,21 @@ test("projected sick-hour preview does not cross credit boundaries", async (t) =
   for (const [hours, expectedHours, expectedService] of [
     [160.75, "160.75 hours", "0 years, 1 months"],
     [7.999999999999999, "8 hours", "0 years, 1 months"],
+    [8 - 1e-9, "8 hours", "0 years, 1 months"],
+    [1.15, "1.15 hours", "0 years, 0 months"],
     [7.999, "7.99 hours", "0 years, 0 months"],
     [160.999, "160.99 hours", "0 years, 1 months"],
     [320.999, "320.99 hours", "0 years, 2 months"],
   ]) {
-    fixture.get("sick-hours").value = String(hours);
-    fixture.form.dispatch("input", fixture.get("sick-hours"));
-    assert.equal(
-      fixture.get("projected-sick-hours").textContent,
-      expectedHours,
-      `${hours} hours`,
-    );
-    assert.equal(
-      fixture.get("sick-service").textContent,
-      expectedService,
-      `${hours} hours`,
-    );
+    await t.test(`${hours} hours`, () => {
+      fixture.get("sick-hours").value = String(hours);
+      fixture.form.dispatch("input", fixture.get("sick-hours"));
+      assert.equal(
+        fixture.get("projected-sick-hours").textContent,
+        expectedHours,
+      );
+      assert.equal(fixture.get("sick-service").textContent, expectedService);
+    });
   }
 });
 

@@ -27,11 +27,13 @@ const hoursFormat = new Intl.NumberFormat("en-US", {
 });
 
 function nonnegativeHoursForDisplay(hours) {
-  const nearestInteger = Math.round(hours);
-  if (Math.abs(hours - nearestInteger) <= 1e-9) {
-    return Math.max(0, nearestInteger);
-  }
-  return Math.trunc(hours * 100) / 100;
+  const ceiling = Math.ceil(hours);
+  if (hours >= ceiling - 1e-9) return ceiling;
+
+  const hundredths = hours * 100;
+  return Math.floor(
+    hundredths + Number.EPSILON * Math.abs(hundredths),
+  ) / 100;
 }
 
 const months = [
