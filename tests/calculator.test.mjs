@@ -347,6 +347,10 @@ test("fails each nonnumeric eligibility requirement independently", () => {
   );
 });
 
+test("creates the January 31 retirement date for a year", () => {
+  assert.deepEqual(retirementDateForYear(2030), new Date(2030, 0, 31));
+});
+
 test("counts July 1 raises after the base date and before retirement", () => {
   assert.equal(
     countJulyRaises({
@@ -831,12 +835,16 @@ test("integrated estimates preserve service and allowance identities", () => {
       sick: { mode: "retirement", hours: 161 },
       benefitService: { mode: "calculated" },
       salary: { mode: "anticipated", amount: 100_000 },
+      expectedSickMonths: 2,
+      expectedRetirementSalary: 100_000,
     },
     {
       otherLgers: { years: 2, months: 6 },
       sick: { mode: "current", hours: 320.75 },
       benefitService: { mode: "calculated" },
       salary: { mode: "current", amount: 90_000 },
+      expectedSickMonths: 3,
+      expectedRetirementSalary: 101_237.76000000001,
     },
     {
       otherLgers: null,
@@ -848,14 +856,22 @@ test("integrated estimates preserve service and allowance identities", () => {
         promotionMonth: 1,
         promotionYear: 2029,
       },
+      expectedSickMonths: 1,
+      expectedRetirementSalary: 83_540.08,
     },
   ];
 
-  for (const overrides of cases) {
+  for (const {
+    expectedSickMonths,
+    expectedRetirementSalary,
+    ...overrides
+  } of cases) {
     const estimate = calculateEstimate(
       { ...validInput(), ...overrides },
       new Date(2026, 6, 17),
     );
+    assert.equal(estimate.service.sickServiceMonths, expectedSickMonths);
+    assert.equal(estimate.retirementSalary, expectedRetirementSalary);
     assert.equal(
       estimate.service.sickServiceYears,
       estimate.service.sickServiceMonths / 12,
@@ -897,6 +913,7 @@ test("integrated eligibility accepts exact composite service and share threshold
     {
       label: "25 years at age 60",
       today: new Date(2029, 0, 31),
+      expectedServiceYears: 25,
       input: {
         ...validInput(),
         currentGfd: { years: 11, months: 6 },
@@ -907,6 +924,7 @@ test("integrated eligibility accepts exact composite service and share threshold
     {
       label: "30 years under age 60",
       today: new Date(2029, 0, 31),
+      expectedServiceYears: 30,
       input: {
         ...validInput(),
         birthYear: 1971,
@@ -918,6 +936,8 @@ test("integrated eligibility accepts exact composite service and share threshold
     {
       label: "exactly 50 percent GFD",
       today: new Date(2029, 0, 31),
+      expectedServiceYears: 25,
+      expectedGfdShare: 0.5,
       input: {
         ...validInput(),
         currentGfd: { years: 11, months: 6 },
@@ -927,8 +947,26 @@ test("integrated eligibility accepts exact composite service and share threshold
     },
   ];
 
-  for (const { label, today, input } of cases) {
+  for (const {
+    label,
+    today,
+    expectedServiceYears,
+    expectedGfdShare,
+    input,
+  } of cases) {
     const estimate = calculateEstimate(input, today);
+    assert.ok(
+      Math.abs(
+        estimate.service.eligibilityServiceYears - expectedServiceYears,
+      ) < 1e-12,
+      label,
+    );
+    if (expectedGfdShare !== undefined) {
+      assert.ok(
+        Math.abs(estimate.eligibility.gfdShare - expectedGfdShare) < 1e-12,
+        label,
+      );
+    }
     assert.equal(estimate.eligibility.eligible, true, label);
     assert.ok(estimate.benefit, label);
   }
