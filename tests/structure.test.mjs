@@ -34,6 +34,9 @@ async function controllerFixture() {
     "calculate-button": "button",
     "edit-answers": "button",
     "start-over": "button",
+    "open-salary-structure": "button",
+    "close-salary-structure": "button",
+    "salary-structure-dialog": "dialog",
   };
 
   class FakeElement {
@@ -44,6 +47,7 @@ async function controllerFixture() {
       this.defaultValue = "";
       this.hidden = false;
       this.disabled = false;
+      this.open = false;
       this.checked = false;
       this.defaultChecked = false;
       this.dataset = {};
@@ -124,6 +128,14 @@ async function controllerFixture() {
 
     focus() {
       document.activeElement = this;
+    }
+
+    showModal() {
+      this.open = true;
+    }
+
+    close() {
+      this.open = false;
     }
   }
 
@@ -641,6 +653,47 @@ test("reveals salary structure fields and renders step progression", async (t) =
   );
 });
 
+test("opens, closes, and resets the salary structure dialog", async (t) => {
+  const fixture = await controllerFixture();
+  t.after(fixture.cleanup);
+  const dialog = fixture.get("salary-structure-dialog");
+  const opener = fixture.get("open-salary-structure");
+
+  opener.dispatch("click");
+  assert.equal(dialog.open, true);
+  fixture.get("close-salary-structure").dispatch("click");
+  assert.equal(dialog.open, false);
+  assert.equal(fixture.document.activeElement, opener);
+
+  opener.dispatch("click");
+  fixture.get("clear-form-bottom").dispatch("click");
+  assert.equal(dialog.open, false);
+});
+
+test("includes the active salary structure and approved assumptions", async () => {
+  const html = await readFile(new URL("index.html", rootUrl), "utf8");
+  const css = await readFile(new URL("styles.css", rootUrl), "utf8");
+  const normalized = html.replace(/\s+/g, " ");
+
+  for (const fragment of [
+    'id="open-salary-structure"',
+    'id="salary-structure-dialog"',
+    'id="close-salary-structure"',
+    'id="nonexempt-salary-body"',
+    'id="exempt-salary-body"',
+    "FY 2025-2026 Fire Sworn Salary Structure",
+    "Effective October 15, 2025",
+    "Current sick hours are projected using your uncapped historical net rate.",
+    "November 1 is used as the estimated annual raise date because the dates City Hall releases raises vary.",
+    "Salary values use the FY 2025-2026 structure effective October 15, 2025 until this calculator is manually updated.",
+  ]) {
+    assert.ok(normalized.includes(fragment), fragment);
+  }
+  assert.match(css, /\.salary-dialog\s*\{/);
+  assert.match(css, /\.table-scroll\s*\{[^}]*overflow-x:\s*auto;/s);
+  assert.match(css, /\.salary-table\s*\{/);
+});
+
 test("controller gates allowance inputs and renders eligibility evidence", async () => {
   const app = await readFile(new URL("app.mjs", rootUrl), "utf8");
 
@@ -954,7 +1007,7 @@ test("uses approved progressive disclosure layout and copy", async () => {
   }
   assert.ok(
     normalizedHtml.includes(
-      "When current sick hours are selected, the calculator uses your uncapped historical net rate based on current sick hours and completed GFD and other LGERS service, then applies that rate through retirement.",
+      "Current sick hours are projected using your uncapped historical net rate. The rate is based on current sick hours and completed GFD and other LGERS service, then applied through retirement.",
     ),
   );
   assert.ok(!normalizedHtml.includes("caps that rate at 96 hours per year"));

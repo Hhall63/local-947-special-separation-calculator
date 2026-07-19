@@ -49,6 +49,12 @@ The editable constants are grouped in `calculator.mjs`:
 - `BENEFIT_MULTIPLIER`: Fire SSA calculation multiplier
 - `CHECKS_PER_YEAR`: gross biweekly divisor
 
+Structured salary estimates use November 1 as the estimated annual raise date.
+The active salary source is the City of Greensboro FY 2025-2026 Fire Sworn
+Salary Structure, effective October 15, 2025. When a new structure is adopted,
+update `SALARY_STRUCTURE`, the salary-dialog effective date, and the matching
+Calculation assumptions copy together.
+
 Run `node --test` after every change. Official rules and salary values must be
 reviewed before public release and whenever policy or pay schedules change.
 

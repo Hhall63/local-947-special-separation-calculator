@@ -294,6 +294,54 @@ function populateChoices() {
   });
 }
 
+function appendTableCell(row, tag, text, scope) {
+  const cell = document.createElement(tag);
+  cell.textContent = text;
+  if (scope) cell.setAttribute("scope", scope);
+  row.append(cell);
+}
+
+function populateSalaryStructureDialog() {
+  const nonexemptBody = element("nonexempt-salary-body");
+  const exemptBody = element("exempt-salary-body");
+  for (const details of Object.values(SALARY_STRUCTURE)) {
+    const row = document.createElement("tr");
+    appendTableCell(
+      row,
+      "th",
+      "F" + String(details.grade).padStart(2, "0"),
+      "row",
+    );
+    appendTableCell(row, "td", details.label);
+    if (details.type === "nonexempt") {
+      for (let index = 0; index < 8; index += 1) {
+        appendTableCell(
+          row,
+          "td",
+          details.steps[index] ? currency.format(details.steps[index]) : "-",
+        );
+      }
+      appendTableCell(
+        row,
+        "td",
+        details.rangeMax ? currency.format(details.rangeMax) : "-",
+      );
+      nonexemptBody.append(row);
+    } else {
+      for (const value of [
+        details.rangeMin,
+        details.greenMin,
+        details.controlPoint,
+        details.greenMax,
+        details.rangeMax,
+      ]) {
+        appendTableCell(row, "td", currency.format(value));
+      }
+      exemptBody.append(row);
+    }
+  }
+}
+
 function clearErrors() {
   errorSummary.hidden = true;
   errorList.replaceChildren();
@@ -658,6 +706,9 @@ element("edit-answers").addEventListener("click", () => {
 
 function resetCalculator() {
   form.reset();
+  if (element("salary-structure-dialog").open) {
+    element("salary-structure-dialog").close();
+  }
   clearErrors();
   clearPreview();
   element("preview-status").textContent = "";
@@ -677,5 +728,19 @@ for (const id of ["clear-form-top", "clear-form-bottom", "start-over"]) {
   element(id).addEventListener("click", resetCalculator);
 }
 
+const salaryStructureDialog = element("salary-structure-dialog");
+const salaryStructureOpener = element("open-salary-structure");
+salaryStructureOpener.addEventListener("click", () => {
+  salaryStructureDialog.showModal();
+});
+element("close-salary-structure").addEventListener("click", () => {
+  salaryStructureDialog.close();
+  salaryStructureOpener.focus();
+});
+salaryStructureDialog.addEventListener("close", () => {
+  salaryStructureOpener.focus();
+});
+
 populateChoices();
+populateSalaryStructureDialog();
 updateConditionalFields();

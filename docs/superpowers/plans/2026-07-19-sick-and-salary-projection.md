@@ -35,7 +35,7 @@
 - Consumes: `projectSickHours({ currentHours, currentWorkedYears, remainingYears })`.
 - Produces: The same numeric return value, calculated from the uncapped historical net rate.
 
-- [ ] **Step 1: Replace cap-focused tests with an uncapped-rate test**
+- [x] **Step 1: Replace cap-focused tests with an uncapped-rate test**
 
 ```js
 test("projects current sick hours at an uncapped historical net rate", () => {
@@ -52,13 +52,13 @@ test("projects current sick hours at an uncapped historical net rate", () => {
 
 Update the structural copy assertion to require `uncapped historical net rate` and reject `caps that rate at 96 hours per year`.
 
-- [ ] **Step 2: Run focused tests and verify RED**
+- [x] **Step 2: Run focused tests and verify RED**
 
 Run: `node --test --test-name-pattern "uncapped historical|progressive disclosure layout"`
 
 Expected: FAIL because `projectSickHours()` still limits the rate to 96 and the old assumption remains.
 
-- [ ] **Step 3: Remove the cap at the shared projection function**
+- [x] **Step 3: Remove the cap at the shared projection function**
 
 ```js
 export function projectSickHours({
@@ -77,13 +77,13 @@ export function projectSickHours({
 
 Delete `MAX_SICK_ACCRUAL_PER_YEAR`, update the assumption sentence, and remove the obsolete constant from README maintenance guidance.
 
-- [ ] **Step 4: Run focused tests and verify GREEN**
+- [x] **Step 4: Run focused tests and verify GREEN**
 
 Run: `node --test --test-name-pattern "sick|progressive disclosure layout"`
 
 Expected: all sick projection, conversion, integrated service, and assumption tests pass.
 
-- [ ] **Step 5: Commit the sick change**
+- [x] **Step 5: Commit the sick change**
 
 ```powershell
 git add -- calculator.mjs index.html README.md tests/calculator.test.mjs tests/structure.test.mjs
@@ -101,7 +101,7 @@ git commit -m "fix: project uncapped historical sick leave"
 - `projectStructuredSalary(input)` returns `{ salary, rank, step, maximumDate, maximumStatus }`, where `step` is `null` for exempt ranks and `maximumStatus` is `"already"`, `"reached"`, or `"not-before-retirement"`.
 - Consumed later by: `calculateRetirementSalary()`, `populateSalaryChoices()`, salary preview rendering, and the salary-table dialog.
 
-- [ ] **Step 1: Add salary-structure and boundary tests**
+- [x] **Step 1: Add salary-structure and boundary tests**
 
 Add tests that assert:
 
@@ -128,13 +128,13 @@ projectStructuredSalary({
 
 Also prove: a raise does not occur before November 1; F01 stops at Step 5; a same-day November 1 promotion does not receive a second raise; closest-step promotion chooses the higher step on a tie; exempt compounding stops exactly at Green Zone Maximum; an exempt salary already above Green Zone Maximum is not reduced; any exempt promotion begins at Green Zone Minimum; and no maximum before retirement returns `not-before-retirement`.
 
-- [ ] **Step 2: Run the focused salary tests and verify RED**
+- [x] **Step 2: Run the focused salary tests and verify RED**
 
 Run: `node --test --test-name-pattern "salary structure|structured salary|November 1|Green Zone|closest step" tests/calculator.test.mjs`
 
 Expected: FAIL because the structure and projection function do not exist.
 
-- [ ] **Step 3: Add the single salary data source**
+- [x] **Step 3: Add the single salary data source**
 
 ```js
 export const SALARY_STRUCTURE = Object.freeze({
@@ -151,13 +151,13 @@ export const SALARY_STRUCTURE = Object.freeze({
 
 Delete `RANK_SALARIES`, `RAISE_RATE`, `countJulyRaises()`, and the old rank/current projection branch after callers are migrated.
 
-- [ ] **Step 4: Implement the smallest event-based projection**
+- [x] **Step 4: Implement the smallest event-based projection**
 
 `projectStructuredSalary()` starts from the current rank/step or salary, processes at most one promotion and each intervening November 1 in chronological order, skips the annual raise when it shares the promotion date, and records when the retirement rank reaches its cap. Use `Date` comparisons and the published arrays directly; do not add a timeline class.
 
 `calculateRetirementSalary()` returns `amount` for anticipated mode and `projectStructuredSalary(input.salary).salary` for structure mode.
 
-- [ ] **Step 5: Run focused and complete calculator tests**
+- [x] **Step 5: Run focused and complete calculator tests**
 
 Run:
 
@@ -168,7 +168,7 @@ node --test tests/calculator.test.mjs
 
 Expected: all calculator tests pass and the old July 1/rank-starting tests have been replaced.
 
-- [ ] **Step 6: Commit the salary domain change**
+- [x] **Step 6: Commit the salary domain change**
 
 ```powershell
 git add -- calculator.mjs tests/calculator.test.mjs
@@ -187,19 +187,19 @@ git commit -m "feat: project salaries from sworn fire structure"
 - Structured salary input shape: `{ mode: "structure", currentRank, currentStep, currentSalary, retirementRank, promotionMonth, promotionYear, meritRate }`.
 - New DOM IDs: `salary-structure-fields`, `current-rank`, `current-step-field`, `current-step`, `current-exempt-salary-field`, `current-exempt-salary`, `retirement-rank-field`, `retirement-rank`, `promotion-date-fields`, `merit-rate-field`, `merit-rate`, `salary-position`, `salary-maximum`.
 
-- [ ] **Step 1: Add failing validation and controller tests**
+- [x] **Step 1: Add failing validation and controller tests**
 
 Test valid manual, nonexempt, exempt, and promoted salary inputs. Test errors for missing/unknown rank, invalid step, nonpositive or above-Range-Max exempt salary, negative merit rate, lower retirement grade, and missing/nonfuture/post-retirement promotion date.
 
 Extend the browser fixture to prove that selecting `structure` reveals current rank; F02 reveals step but not current salary; F06 reveals current salary and merit; a changed retirement rank reveals promotion date; and a complete valid structure input reveals all three preview values.
 
-- [ ] **Step 2: Run focused tests and verify RED**
+- [x] **Step 2: Run focused tests and verify RED**
 
 Run: `node --test --test-name-pattern "structured salary inputs|salary validation|progressively reveals"`
 
 Expected: FAIL because the new DOM fields and input shape are absent.
 
-- [ ] **Step 3: Replace salary markup with two modes**
+- [x] **Step 3: Replace salary markup with two modes**
 
 Keep `anticipated` and replace `current`/`rank` with:
 
@@ -212,7 +212,7 @@ Keep `anticipated` and replace `current`/`rank` with:
 
 Add the structured select/number fields using the IDs above, `min="0"`, appropriate `step`, and existing `.field`, `.field-row`, `.choice-stack`, `.hint`, and `.calculation-panel` classes.
 
-- [ ] **Step 4: Collect, reveal, validate, and render through existing paths**
+- [x] **Step 4: Collect, reveal, validate, and render through existing paths**
 
 - Populate current and retirement ranks from `SALARY_STRUCTURE` and steps from the selected current rank.
 - Collect the structured salary object in `collectInput()`.
@@ -221,7 +221,7 @@ Add the structured select/number fields using the IDs above, `min="0"`, appropri
 - Render projected salary, final step/exempt position, and maximum date/status in the existing preview.
 - Ensure reset returns merit rate to `4`, clears generated step choices, and hides every dependent region.
 
-- [ ] **Step 5: Run focused and full tests**
+- [x] **Step 5: Run focused and full tests**
 
 Run:
 
@@ -232,7 +232,7 @@ node --test
 
 Expected: all tests pass.
 
-- [ ] **Step 6: Commit the salary interface**
+- [x] **Step 6: Commit the salary interface**
 
 ```powershell
 git add -- app.mjs calculator.mjs index.html tests/calculator.test.mjs tests/structure.test.mjs
@@ -252,7 +252,7 @@ git commit -m "feat: add structured salary entry"
 - New DOM IDs: `open-salary-structure`, `salary-structure-dialog`, `close-salary-structure`, `nonexempt-salary-body`, `exempt-salary-body`.
 - Consumes: `SALARY_STRUCTURE` for dialog row generation.
 
-- [ ] **Step 1: Add failing dialog, copy, and visual-hook tests**
+- [x] **Step 1: Add failing dialog, copy, and visual-hook tests**
 
 Assert the native dialog, opener, close button, two labeled tables, effective date, and these assumptions exist:
 
@@ -264,25 +264,25 @@ Salary values use the FY 2025-2026 structure effective October 15, 2025 until th
 
 Test opener `showModal()`, Close, Escape-native close/focus restoration, and reset closing behavior with the fixture's dialog stub.
 
-- [ ] **Step 2: Run focused tests and verify RED**
+- [x] **Step 2: Run focused tests and verify RED**
 
 Run: `node --test --test-name-pattern "salary structure dialog|salary assumptions|complete reset"`
 
 Expected: FAIL because the dialog and new copy are absent.
 
-- [ ] **Step 3: Add semantic dialog markup and shared-data population**
+- [x] **Step 3: Add semantic dialog markup and shared-data population**
 
 Use `<dialog>` with a heading, effective-date paragraph, two `.table-scroll` wrappers, semantic tables, progression notes, and the existing secondary Close button. Populate body rows from `SALARY_STRUCTURE`; do not duplicate salary amounts in `app.mjs`.
 
-- [ ] **Step 4: Reuse the existing visual system**
+- [x] **Step 4: Reuse the existing visual system**
 
 Add only the required selectors: `.salary-source`, `.salary-dialog`, `.salary-dialog__header`, `.table-scroll`, and `.salary-table`. Use existing `--navy`, `--red`, `--gold`, `--surface`, `--border`, `--white`, `--radius-sm`, `--radius-md`, and spacing variables. Style `dialog::backdrop` with a translucent navy. Constrain dialog width/height and table overflow so the page never scrolls horizontally.
 
-- [ ] **Step 5: Update assumptions and maintenance documentation**
+- [x] **Step 5: Update assumptions and maintenance documentation**
 
 Replace the capped sick statement, document November 1 and the active salary source/rules, and update README maintenance notes to point to `SALARY_STRUCTURE` and the dialog effective-date copy.
 
-- [ ] **Step 6: Run full automated and rendered verification**
+- [x] **Step 6: Run full automated and rendered verification**
 
 Run:
 
@@ -296,7 +296,7 @@ node C:/Users/ffhal/.agents/skills/impeccable/scripts/detect.mjs --json index.ht
 
 Render 1440px and 390px initial, structured nonexempt, structured exempt/promotion, dialog, complete, and reset states. Verify keyboard focus restoration and no page-level horizontal overflow.
 
-- [ ] **Step 7: Commit, push, and verify production**
+- [x] **Step 7: Commit, push, and verify production**
 
 ```powershell
 git add -- README.md app.mjs calculator.mjs index.html styles.css tests/calculator.test.mjs tests/structure.test.mjs docs/superpowers/plans/2026-07-19-sick-and-salary-projection.md
