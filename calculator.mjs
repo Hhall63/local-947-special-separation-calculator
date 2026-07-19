@@ -125,8 +125,8 @@ export function projectSickHours({
 }
 
 export function sickHoursToServiceMonths(hours) {
-  if (hours < 0) {
-    throw new RangeError("Sick hours cannot be negative.");
+  if (!Number.isFinite(hours) || hours < 0) {
+    throw new RangeError("Sick hours must be finite and nonnegative.");
   }
   if (!isAtLeast(hours, 8)) return 0;
 

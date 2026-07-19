@@ -26,6 +26,14 @@ const hoursFormat = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2,
 });
 
+function nonnegativeHoursForDisplay(hours) {
+  const nearestInteger = Math.round(hours);
+  if (Math.abs(hours - nearestInteger) <= 1e-9) {
+    return Math.max(0, nearestInteger);
+  }
+  return Math.trunc(hours * 100) / 100;
+}
+
 const months = [
   "January",
   "February",
@@ -380,7 +388,9 @@ function renderPreview(announce = false) {
   );
 
   element("projected-sick-hours").textContent = service
-    ? hoursFormat.format(service.retirementSickHours) + " hours"
+    ? hoursFormat.format(
+        nonnegativeHoursForDisplay(service.retirementSickHours),
+      ) + " hours"
     : "-";
   element("sick-service").textContent = service
     ? formatServiceYears(service.sickServiceYears)

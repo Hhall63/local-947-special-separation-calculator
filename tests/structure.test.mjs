@@ -211,7 +211,7 @@ async function controllerFixture() {
     get("birth-month").value = "1";
     get("birth-year").value = "1970";
     get("gfd-years").value = gfdYears;
-    get("sick-hours").value = "160.75";
+    get("sick-hours").value = "0";
     setRadio("regular-retirement", "yes");
     setRadio("continuous-gfd", "yes");
     setRadio("other-lgers", "no");
@@ -324,6 +324,7 @@ test("top and bottom Clear all fields controls share the complete reset", async 
 
     fixture.setEligibilityInputs("1");
     fixture.setAllowanceInputs();
+    fixture.get("sick-hours").value = "160.75";
     fixture.form.dispatch("change", fixture.get("gfd-years"));
     assert.equal(
       fixture.get("projected-sick-hours").textContent,
@@ -413,6 +414,33 @@ test("top and bottom Clear all fields controls share the complete reset", async 
     gfdYears.focus();
     fixture.form.dispatch("change", gfdYears);
     assert.equal(fixture.document.activeElement, fixture.get("result-title"));
+  }
+});
+
+test("projected sick-hour preview does not cross credit boundaries", async (t) => {
+  const fixture = await controllerFixture();
+  t.after(fixture.cleanup);
+  fixture.setEligibilityInputs("26");
+
+  for (const [hours, expectedHours, expectedService] of [
+    [160.75, "160.75 hours", "0 years, 1 months"],
+    [7.999999999999999, "8 hours", "0 years, 1 months"],
+    [7.999, "7.99 hours", "0 years, 0 months"],
+    [160.999, "160.99 hours", "0 years, 1 months"],
+    [320.999, "320.99 hours", "0 years, 2 months"],
+  ]) {
+    fixture.get("sick-hours").value = String(hours);
+    fixture.form.dispatch("input", fixture.get("sick-hours"));
+    assert.equal(
+      fixture.get("projected-sick-hours").textContent,
+      expectedHours,
+      `${hours} hours`,
+    );
+    assert.equal(
+      fixture.get("sick-service").textContent,
+      expectedService,
+      `${hours} hours`,
+    );
   }
 });
 

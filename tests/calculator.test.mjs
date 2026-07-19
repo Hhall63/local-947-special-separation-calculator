@@ -89,9 +89,20 @@ test("adds remaining time only to GFD service", () => {
     otherLgersYears: 4,
   });
 
-  assert.equal(result.remainingYears, 4.000547645125958);
-  assert.equal(result.projectedGfdYears, 24.00054764512596);
+  assert.ok(Math.abs(result.remainingYears - 4.000547645125958) < 1e-12);
+  assert.ok(Math.abs(result.projectedGfdYears - 24.00054764512596) < 1e-12);
   assert.equal(result.otherLgersYears, 4);
+});
+
+test("projects zero current sick hours as zero", () => {
+  assert.equal(
+    projectSickHours({
+      currentHours: 0,
+      currentWorkedYears: 10,
+      remainingYears: 2,
+    }),
+    0,
+  );
 });
 
 test("projects current sick hours at the historical net rate", () => {
@@ -102,6 +113,17 @@ test("projects current sick hours at the historical net rate", () => {
       remainingYears: 2,
     }),
     576,
+  );
+});
+
+test("projects an exact 96-hour historical rate at the cap", () => {
+  assert.equal(
+    projectSickHours({
+      currentHours: 960,
+      currentWorkedYears: 10,
+      remainingYears: 2,
+    }),
+    1152,
   );
 });
 
@@ -139,6 +161,12 @@ test("converts sick hours using the approved eight-hour minimum and partial-bloc
   assert.throws(() => sickHoursToServiceMonths(-0.25), RangeError);
 });
 
+for (const hours of [Number.NaN, Infinity, -Infinity]) {
+  test(`rejects non-finite sick hours: ${hours}`, () => {
+    assert.throws(() => sickHoursToServiceMonths(hours), RangeError);
+  });
+}
+
 test("sick conversion follows the approved rule for every quarter hour through 600 days", () => {
   for (let quarters = 0; quarters <= 19_200; quarters += 1) {
     const hours = quarters / 4;
@@ -150,6 +178,14 @@ test("sick conversion follows the approved rule for every quarter hour through 6
 });
 
 test("calculates age on January 31 from birth month and year", () => {
+  assert.equal(
+    ageAtRetirement({
+      birthYear: 1969,
+      birthMonth: 1,
+      retirementYear: 2030,
+    }),
+    61,
+  );
   assert.equal(
     ageAtRetirement({
       birthYear: 1970,
@@ -166,6 +202,20 @@ test("calculates age on January 31 from birth month and year", () => {
     }),
     59,
   );
+});
+
+test("rejects nonpositive current worked years", () => {
+  for (const currentWorkedYears of [0, -1]) {
+    assert.throws(
+      () =>
+        projectSickHours({
+          currentHours: 480,
+          currentWorkedYears,
+          remainingYears: 2,
+        }),
+      RangeError,
+    );
+  }
 });
 
 test("calculates age and covered months for every birth month", () => {
@@ -437,9 +487,13 @@ test("calculates service without unrelated eligibility or salary fields", () => 
     new Date(2026, 0, 31),
   );
 
-  assert.equal(service.projectedGfdYears, 24.00054764512596);
+  assert.ok(
+    Math.abs(service.projectedGfdYears - 24.00054764512596) < 1e-12,
+  );
   assert.equal(service.sickServiceMonths, 2);
-  assert.equal(service.eligibilityServiceYears, 28.167214311792627);
+  assert.ok(
+    Math.abs(service.eligibilityServiceYears - 28.167214311792627) < 1e-12,
+  );
 });
 
 test("calculates salary without unrelated service or eligibility fields", () => {
@@ -521,7 +575,10 @@ test("manual benefit service changes payments without changing eligibility", () 
     new Date(2026, 0, 31),
   );
 
-  assert.equal(estimate.service.eligibilityServiceYears, 30.00054764512596);
+  assert.ok(
+    Math.abs(estimate.service.eligibilityServiceYears - 30.00054764512596) <
+      1e-12,
+  );
   assert.equal(estimate.service.benefitServiceYears, 28);
   assert.equal(estimate.eligibility.eligible, true);
   assert.equal(estimate.benefit.annual, 23800);
