@@ -5,16 +5,15 @@ import { execFileSync } from "node:child_process";
 import * as calculator from "../calculator.mjs";
 
 import {
-  RANK_SALARIES,
+  SALARY_STRUCTURE,
   ageAtRetirement,
   calculateBenefit,
   calculateEstimate,
-  countJulyRaises,
   coveredBenefitMonths,
   evaluateEligibility,
   formatServiceYears,
   projectService,
-  projectSalary,
+  projectStructuredSalary,
   projectSickHours,
   retirementDateForYear,
   sickHoursToServiceMonths,
@@ -390,78 +389,141 @@ test("creates the January 31 retirement date for a year", () => {
   assert.deepEqual(retirementDateForYear(2030), new Date(2030, 0, 31));
 });
 
-test("counts July 1 raises after the base date and before retirement", () => {
-  assert.equal(
-    countJulyRaises({
-      baseDate: new Date(2026, 6, 17),
-      retirementDate: new Date(2030, 0, 31),
-    }),
-    3,
+test("uses the FY 2025-2026 sworn fire salary structure", () => {
+  assert.deepEqual(
+    SALARY_STRUCTURE.f01.steps,
+    [49_724, 51_713, 53_782, 55_933, 58_170],
   );
+  assert.equal(SALARY_STRUCTURE.f05.steps.at(-1), 105_705);
+  assert.equal(SALARY_STRUCTURE.f06.greenMax, 123_751);
+  assert.equal(SALARY_STRUCTURE.f09.rangeMax, 265_045);
 });
 
-test("a July promotion receives its first raise the following July", () => {
-  assert.equal(
-    projectSalary({
-      mode: "rank",
-      rank: "captain",
-      promotionMonth: 7,
-      promotionYear: 2027,
-      today: new Date(2026, 6, 17),
-      retirementDate: new Date(2030, 0, 31),
-    }),
-    RANK_SALARIES.captain.salary * 1.04 ** 2,
-  );
+test("advances nonexempt steps on November 1 and stops at the maximum", () => {
+  const result = projectStructuredSalary({
+    currentRank: "f02",
+    currentStep: 7,
+    retirementRank: "f02",
+    meritRate: 4,
+    today: new Date(2026, 6, 19),
+    retirementDate: new Date(2028, 0, 31),
+  });
+
+  assert.equal(result.salary, 74_263);
+  assert.equal(result.step, 8);
+  assert.deepEqual(result.maximumDate, new Date(2026, 10, 1));
+  assert.equal(result.maximumStatus, "reached");
 });
 
-test("projects every configured rank across raise counts", () => {
-  for (const rank of Object.keys(RANK_SALARIES)) {
-    for (const [promotionYear, retirementYear, raises] of [
-      [2029, 2030, 0],
-      [2028, 2030, 1],
-      [2027, 2030, 2],
-    ]) {
-      assert.equal(
-        projectSalary({
-          mode: "rank",
-          rank,
-          promotionMonth: 7,
-          promotionYear,
-          today: new Date(2026, 0, 31),
-          retirementDate: new Date(retirementYear, 0, 31),
-        }),
-        RANK_SALARIES[rank].salary * 1.04 ** raises,
-      );
-    }
-  }
+test("does not count a November raise that is before the projection base", () => {
+  const result = projectStructuredSalary({
+    currentRank: "f02",
+    currentStep: 1,
+    retirementRank: "f02",
+    meritRate: 4,
+    today: new Date(2026, 10, 2),
+    retirementDate: new Date(2030, 0, 31),
+  });
+
+  assert.equal(result.step, 4);
+  assert.equal(result.salary, 63_481);
+  assert.equal(result.maximumStatus, "not-before-retirement");
 });
 
-test("counts July raises on both sides of the strict boundary", () => {
-  for (const [baseDate, expected] of [
-    [new Date(2027, 5, 30), 3],
-    [new Date(2027, 6, 1), 2],
-    [new Date(2027, 6, 2), 2],
-  ]) {
-    assert.equal(
-      countJulyRaises({
-        baseDate,
-        retirementDate: new Date(2030, 0, 31),
-      }),
-      expected,
-    );
-  }
+test("promotes nonexempt salary to the step closest to a 5 percent increase", () => {
+  const result = projectStructuredSalary({
+    currentRank: "f02",
+    currentStep: 8,
+    retirementRank: "f04",
+    promotionMonth: 12,
+    promotionYear: 2027,
+    meritRate: 4,
+    today: new Date(2026, 6, 19),
+    retirementDate: new Date(2028, 0, 31),
+  });
+
+  assert.equal(result.rank, "f04");
+  assert.equal(result.step, 5);
+  assert.equal(result.salary, 78_358);
 });
 
-test("uses anticipated salary directly", () => {
-  assert.equal(
-    projectSalary({
-      mode: "anticipated",
-      amount: 123456,
-      today: new Date(2026, 6, 17),
-      retirementDate: new Date(2030, 0, 31),
-    }),
-    123456,
-  );
+test("chooses the higher nonexempt step when promotion distances tie", () => {
+  const midpoint = (80_327 + 83_540) / 2;
+  const result = projectStructuredSalary({
+    currentRank: "f06",
+    currentSalary: midpoint / 1.05,
+    retirementRank: "f05",
+    promotionMonth: 12,
+    promotionYear: 2026,
+    meritRate: 0,
+    today: new Date(2026, 6, 19),
+    retirementDate: new Date(2027, 0, 31),
+  });
+
+  assert.equal(result.step, 2);
+  assert.equal(result.salary, 83_540);
+});
+
+test("caps exempt merit raises at Green Zone Maximum", () => {
+  const result = projectStructuredSalary({
+    currentRank: "f06",
+    currentSalary: 120_000,
+    retirementRank: "f06",
+    meritRate: 4,
+    today: new Date(2026, 6, 19),
+    retirementDate: new Date(2028, 0, 31),
+  });
+
+  assert.equal(result.salary, 123_751);
+  assert.deepEqual(result.maximumDate, new Date(2026, 10, 1));
+  assert.equal(result.maximumStatus, "reached");
+});
+
+test("does not reduce an existing exempt salary above Green Zone Maximum", () => {
+  const result = projectStructuredSalary({
+    currentRank: "f06",
+    currentSalary: 130_000,
+    retirementRank: "f06",
+    meritRate: 4,
+    today: new Date(2026, 6, 19),
+    retirementDate: new Date(2028, 0, 31),
+  });
+
+  assert.equal(result.salary, 130_000);
+  assert.equal(result.maximumStatus, "already");
+});
+
+test("starts every exempt promotion at Green Zone Minimum", () => {
+  const result = projectStructuredSalary({
+    currentRank: "f05",
+    currentStep: 8,
+    retirementRank: "f06",
+    promotionMonth: 6,
+    promotionYear: 2027,
+    meritRate: 4,
+    today: new Date(2026, 6, 19),
+    retirementDate: new Date(2028, 0, 31),
+  });
+
+  assert.equal(result.rank, "f06");
+  assert.equal(result.salary, 97_801.6);
+  assert.equal(result.step, null);
+  assert.equal(result.maximumStatus, "not-before-retirement");
+});
+
+test("does not apply an annual raise on the promotion date", () => {
+  const result = projectStructuredSalary({
+    currentRank: "f05",
+    currentStep: 8,
+    retirementRank: "f06",
+    promotionMonth: 11,
+    promotionYear: 2027,
+    meritRate: 4,
+    today: new Date(2026, 6, 19),
+    retirementDate: new Date(2028, 0, 31),
+  });
+
+  assert.equal(result.salary, 94_040);
 });
 
 test("calculates service without unrelated eligibility or salary fields", () => {
@@ -496,6 +558,25 @@ test("calculates salary without unrelated service or eligibility fields", () => 
       new Date(2026, 6, 17),
     ),
     123456,
+  );
+});
+
+test("calculates a structured salary without unrelated calculator fields", () => {
+  assert.equal(
+    calculator.calculateRetirementSalary(
+      {
+        retirementYear: 2028,
+        salary: {
+          mode: "structure",
+          currentRank: "f02",
+          currentStep: 7,
+          retirementRank: "f02",
+          meritRate: 4,
+        },
+      },
+      new Date(2026, 6, 19),
+    ),
+    74_263,
   );
 });
 

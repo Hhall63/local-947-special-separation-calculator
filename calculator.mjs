@@ -290,12 +290,213 @@ export const RANK_SALARIES = Object.freeze({
   fireChief: { label: "Fire Chief", salary: 180_183 },
 });
 
+export const SALARY_STRUCTURE = Object.freeze({
+  f01: Object.freeze({
+    grade: 1,
+    label: "Fire Fighter",
+    type: "nonexempt",
+    steps: Object.freeze([49_724, 51_713, 53_782, 55_933, 58_170]),
+    rangeMax: null,
+  }),
+  f02: Object.freeze({
+    grade: 2,
+    label: "Fire Fighter Sr",
+    type: "nonexempt",
+    steps: Object.freeze([
+      56_434, 58_691, 61_039, 63_481, 66_020, 68_661, 71_407, 74_263,
+    ]),
+    rangeMax: 83_013,
+  }),
+  f04: Object.freeze({
+    grade: 4,
+    label: "Sr Fire Inspector / Fire Engineer",
+    type: "nonexempt",
+    steps: Object.freeze([
+      66_980, 69_660, 72_446, 75_344, 78_358, 81_492, 84_752, 88_142,
+    ]),
+    rangeMax: 98_527,
+  }),
+  f05: Object.freeze({
+    grade: 5,
+    label: "Fire Captain / Asst Fire Marshal",
+    type: "nonexempt",
+    steps: Object.freeze([
+      80_327, 83_540, 86_882, 90_357, 93_972, 97_730, 101_640, 105_705,
+    ]),
+    rangeMax: 118_160,
+  }),
+  f06: Object.freeze({
+    grade: 6,
+    label: "Battalion Chief / Deputy Fire Marshal",
+    type: "exempt",
+    rangeMin: 77_303,
+    greenMin: 94_040,
+    controlPoint: 101_714,
+    greenMax: 123_751,
+    rangeMax: 138_331,
+  }),
+  f07: Object.freeze({
+    grade: 7,
+    label: "Assistant Fire Chief / Fire Marshal",
+    type: "exempt",
+    rangeMin: 98_948,
+    greenMin: 120_373,
+    controlPoint: 130_195,
+    greenMax: 158_402,
+    rangeMax: 177_065,
+  }),
+  f08: Object.freeze({
+    grade: 8,
+    label: "Deputy Fire Chief",
+    type: "exempt",
+    rangeMin: 111_297,
+    greenMin: 135_395,
+    controlPoint: 146_443,
+    greenMax: 178_170,
+    rangeMax: 199_162,
+  }),
+  f09: Object.freeze({
+    grade: 9,
+    label: "Fire Chief",
+    type: "exempt",
+    rangeMin: 148_113,
+    greenMin: 180_183,
+    controlPoint: 194_886,
+    greenMax: 237_109,
+    rangeMax: 265_045,
+  }),
+});
+
+export function isExemptRank(rank) {
+  return SALARY_STRUCTURE[rank]?.type === "exempt";
+}
+
 export const RAISE_RATE = 0.04;
 export const BENEFIT_MULTIPLIER = 0.0085;
 export const CHECKS_PER_YEAR = 26;
 
 function dateNumber(date) {
   return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function nearestStepIndex(steps, target) {
+  let nearest = 0;
+  for (let index = 1; index < steps.length; index += 1) {
+    if (
+      Math.abs(steps[index] - target) <=
+      Math.abs(steps[nearest] - target)
+    ) {
+      nearest = index;
+    }
+  }
+  return nearest;
+}
+
+export function projectStructuredSalary({
+  currentRank,
+  currentStep,
+  currentSalary,
+  retirementRank,
+  promotionMonth,
+  promotionYear,
+  meritRate,
+  today,
+  retirementDate,
+}) {
+  let rank = currentRank;
+  let details = SALARY_STRUCTURE[rank];
+  let stepIndex = details.type === "nonexempt" ? currentStep - 1 : null;
+  let salary =
+    stepIndex === null ? currentSalary : details.steps[stepIndex];
+  const targetRank = retirementRank;
+  const promotionDate =
+    targetRank === currentRank
+      ? null
+      : new Date(promotionYear, promotionMonth - 1, 1);
+  let targetActive = rank === targetRank;
+  const atMaximum = () =>
+    details.type === "nonexempt"
+      ? stepIndex === details.steps.length - 1
+      : salary >= details.greenMax;
+  let maximumDate = null;
+  let maximumStatus = targetActive && atMaximum()
+    ? "already"
+    : "not-before-retirement";
+
+  const events = [];
+  if (
+    promotionDate &&
+    dateNumber(promotionDate) > dateNumber(today) &&
+    dateNumber(promotionDate) < dateNumber(retirementDate)
+  ) {
+    events.push({ type: "promotion", date: promotionDate });
+  }
+  for (
+    let year = today.getFullYear();
+    year <= retirementDate.getFullYear();
+    year += 1
+  ) {
+    const date = new Date(year, 10, 1);
+    if (
+      dateNumber(date) > dateNumber(today) &&
+      dateNumber(date) < dateNumber(retirementDate)
+    ) {
+      events.push({ type: "raise", date });
+    }
+  }
+  events.sort((left, right) => {
+    const difference = dateNumber(left.date) - dateNumber(right.date);
+    if (difference !== 0) return difference;
+    return left.type === "promotion" ? -1 : 1;
+  });
+
+  for (const event of events) {
+    if (event.type === "promotion") {
+      rank = targetRank;
+      details = SALARY_STRUCTURE[rank];
+      targetActive = true;
+      if (details.type === "nonexempt") {
+        stepIndex = nearestStepIndex(details.steps, salary * 1.05);
+        salary = details.steps[stepIndex];
+      } else {
+        stepIndex = null;
+        salary = details.greenMin;
+      }
+    } else {
+      if (
+        promotionDate &&
+        dateNumber(event.date) === dateNumber(promotionDate)
+      ) {
+        continue;
+      }
+      if (details.type === "nonexempt") {
+        stepIndex = Math.min(stepIndex + 1, details.steps.length - 1);
+        salary = details.steps[stepIndex];
+      } else if (salary < details.greenMax) {
+        salary = Math.min(
+          salary * (1 + meritRate / 100),
+          details.greenMax,
+        );
+      }
+    }
+
+    if (
+      targetActive &&
+      maximumStatus === "not-before-retirement" &&
+      atMaximum()
+    ) {
+      maximumDate = event.date;
+      maximumStatus = "reached";
+    }
+  }
+
+  return {
+    salary,
+    rank,
+    step: stepIndex === null ? null : stepIndex + 1,
+    maximumDate,
+    maximumStatus,
+  };
 }
 
 export function retirementDateForYear(year) {
@@ -407,10 +608,18 @@ export function calculateService(input, today = new Date()) {
 }
 
 export function calculateRetirementSalary(input, today = new Date()) {
+  const retirementDate = retirementDateForYear(input.retirementYear);
+  if (input.salary.mode === "structure") {
+    return projectStructuredSalary({
+      ...input.salary,
+      today,
+      retirementDate,
+    }).salary;
+  }
   return projectSalary({
     ...input.salary,
     today,
-    retirementDate: retirementDateForYear(input.retirementYear),
+    retirementDate,
   });
 }
 
