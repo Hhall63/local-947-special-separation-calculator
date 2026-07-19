@@ -23,26 +23,71 @@ function isLeapYear(year) {
   return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
 }
 
+function daysInYear(year) {
+  return isLeapYear(year) ? 366 : 365;
+}
+
+function isFebruary29(date) {
+  return date.getUTCMonth() === 1 && date.getUTCDate() === 29;
+}
+
+function isNoMoreThanOneYear(start, end) {
+  const startYear = start.getUTCFullYear();
+  const endYear = end.getUTCFullYear();
+  if (startYear === endYear) return true;
+  if (endYear !== startYear + 1) return false;
+
+  const startMonth = start.getUTCMonth();
+  const endMonth = end.getUTCMonth();
+  return (
+    startMonth > endMonth ||
+    (startMonth === endMonth && start.getUTCDate() >= end.getUTCDate())
+  );
+}
+
+function includesFebruary29(start, end) {
+  for (
+    let year = start.getUTCFullYear();
+    year <= end.getUTCFullYear();
+    year += 1
+  ) {
+    if (!isLeapYear(year)) continue;
+    const leapDay = new Date(Date.UTC(year, 1, 29));
+    if (leapDay >= start && leapDay <= end) return true;
+  }
+  return false;
+}
+
+function actualActualYearLength(start, end) {
+  if (isNoMoreThanOneYear(start, end)) {
+    const sameLeapYear =
+      start.getUTCFullYear() === end.getUTCFullYear() &&
+      isLeapYear(start.getUTCFullYear());
+    return sameLeapYear || isFebruary29(start) || isFebruary29(end) || includesFebruary29(start, end)
+      ? 366
+      : 365;
+  }
+
+  let days = 0;
+  let years = 0;
+  for (
+    let year = start.getUTCFullYear();
+    year <= end.getUTCFullYear();
+    year += 1
+  ) {
+    days += daysInYear(year);
+    years += 1;
+  }
+  return days / years;
+}
+
 export function yearFractionActualActual(startDate, endDate) {
-  let cursor = toUtcDate(startDate);
+  const start = toUtcDate(startDate);
   const end = toUtcDate(endDate);
+  if (end <= start) throw new RangeError("End date must be after start date.");
 
-  if (end <= cursor) {
-    throw new RangeError("End date must be after start date.");
-  }
-
-  let fraction = 0;
-
-  while (cursor < end) {
-    const year = cursor.getUTCFullYear();
-    const nextYear = new Date(Date.UTC(year + 1, 0, 1));
-    const segmentEnd = nextYear < end ? nextYear : end;
-    const days = (segmentEnd - cursor) / DAY_MS;
-    fraction += days / (isLeapYear(year) ? 366 : 365);
-    cursor = segmentEnd;
-  }
-
-  return fraction;
+  const actualDays = (end - start) / DAY_MS;
+  return actualDays / actualActualYearLength(start, end);
 }
 
 export function projectService({

@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 
 import * as calculator from "../calculator.mjs";
 
@@ -39,6 +40,36 @@ test("matches Microsoft's YEARFRAC Actual/Actual leap-year example", () => {
   assert.ok(Math.abs(result - 0.5765027322404371) < 1e-12);
 });
 
+test("matches Excel Actual/Actual for a multi-year range", () => {
+  const result = yearFractionActualActual(
+    new Date(2026, 6, 18),
+    new Date(2030, 0, 31),
+  );
+  assert.ok(Math.abs(result - 3.54052573932092) < 1e-12);
+});
+
+test("handles Actual/Actual date classes and invalid ranges", () => {
+  assert.equal(yearFractionActualActual(new Date(2026, 0, 31), new Date(2027, 0, 31)), 1);
+  assert.ok(Math.abs(yearFractionActualActual(new Date(2024, 1, 29), new Date(2025, 1, 28)) - 365 / 366) < 1e-12);
+  assert.throws(() => yearFractionActualActual(new Date(2026, 0, 31), new Date(2026, 0, 31)), RangeError);
+  assert.throws(() => yearFractionActualActual(new Date(2026, 1, 1), new Date(2026, 0, 31)), RangeError);
+});
+
+test("Actual/Actual is independent of daylight-saving time zones", () => {
+  const moduleUrl = new URL("../calculator.mjs", import.meta.url).href;
+  const script = `
+    import { yearFractionActualActual } from ${JSON.stringify(moduleUrl)};
+    console.log(yearFractionActualActual(new Date(2026, 2, 8), new Date(2030, 0, 31)));
+  `;
+  const values = ["America/New_York", "UTC"].map((TZ) =>
+    execFileSync(process.execPath, ["--input-type=module", "-e", script], {
+      encoding: "utf8",
+      env: { ...process.env, TZ },
+    }).trim(),
+  );
+  assert.equal(values[0], values[1]);
+});
+
 test("adds remaining time only to GFD service", () => {
   const result = projectService({
     today: new Date(2026, 0, 31),
@@ -47,8 +78,8 @@ test("adds remaining time only to GFD service", () => {
     otherLgersYears: 4,
   });
 
-  assert.equal(result.remainingYears, 4);
-  assert.equal(result.projectedGfdYears, 24);
+  assert.equal(result.remainingYears, 4.000547645125958);
+  assert.equal(result.projectedGfdYears, 24.00054764512596);
   assert.equal(result.otherLgersYears, 4);
 });
 
@@ -306,9 +337,9 @@ test("calculates service without unrelated eligibility or salary fields", () => 
     new Date(2026, 0, 31),
   );
 
-  assert.equal(service.projectedGfdYears, 24);
+  assert.equal(service.projectedGfdYears, 24.00054764512596);
   assert.equal(service.sickServiceMonths, 2);
-  assert.equal(service.eligibilityServiceYears, 28 + 2 / 12);
+  assert.equal(service.eligibilityServiceYears, 28.167214311792627);
 });
 
 test("calculates salary without unrelated service or eligibility fields", () => {
@@ -376,7 +407,7 @@ test("manual benefit service changes payments without changing eligibility", () 
     new Date(2026, 0, 31),
   );
 
-  assert.equal(estimate.service.eligibilityServiceYears, 30);
+  assert.equal(estimate.service.eligibilityServiceYears, 30.00054764512596);
   assert.equal(estimate.service.benefitServiceYears, 28);
   assert.equal(estimate.eligibility.eligible, true);
   assert.equal(estimate.benefit.annual, 23800);
