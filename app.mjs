@@ -174,19 +174,35 @@ function setHidden(id, hidden) {
   element(id).hidden = hidden;
 }
 
-function updateConditionalFields() {
+function hasNonnegativeInput(id) {
+  const value = element(id).value.trim();
+  return value !== "" && Number.isFinite(Number(value)) && Number(value) >= 0;
+}
+
+function updateConditionalFields(errors) {
   setHidden("other-service-fields", radioValue("other-lgers") !== "yes");
+  const benefitMode = radioValue("benefit-service-mode");
   setHidden(
     "manual-service-fields",
-    radioValue("benefit-service-mode") !== "manual",
+    benefitMode !== "manual",
   );
+  setHidden("benefit-service-details", !benefitMode);
 
   const salaryMode = radioValue("salary-mode");
   setHidden("anticipated-salary-field", salaryMode !== "anticipated");
   setHidden("current-salary-field", salaryMode !== "current");
   setHidden("rank-fields", salaryMode !== "rank");
+  setHidden(
+    "salary-preview",
+    !errors || !salaryMode || hasAnyError(errors, salaryErrorKeys),
+  );
 
   const sickMode = radioValue("sick-mode");
+  setHidden("sick-hours-field", !sickMode);
+  setHidden(
+    "service-preview",
+    !sickMode || !hasNonnegativeInput("sick-hours"),
+  );
   element("sick-hours-label").textContent =
     sickMode === "current"
       ? "Current sick hours"
@@ -375,9 +391,9 @@ function renderPreview(announce = false) {
     result.hidden = true;
     result.dataset.mode = "";
   }
-  updateConditionalFields();
   const input = collectInput();
   const errors = validateInput(input);
+  updateConditionalFields(errors);
   const service = hasAnyError(errors, serviceErrorKeys)
     ? null
     : calculateService(input);

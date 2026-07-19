@@ -131,6 +131,7 @@ h2 {
   color: var(--ink);
   font-size: 1rem;
   line-height: 1.5;
+  text-align: center;
 }
 
 .header-copy {
@@ -248,6 +249,10 @@ legend {
   margin-block-end: var(--space-4);
 }
 
+.field--compact {
+  max-width: 18rem;
+}
+
 .field label {
   display: block;
   margin-block-end: var(--space-1);
@@ -346,6 +351,17 @@ select:hover {
 .benefit-totals,
 .calculation-breakdown {
   margin: var(--space-4) 0;
+}
+
+.calculation-panel {
+  padding: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.calculation-panel > .derived-values {
+  margin-block: 0;
 }
 
 .benefit-totals,
@@ -544,9 +560,9 @@ dd {
   margin-block: var(--space-4);
   padding: var(--space-3);
   max-width: 70ch;
-  color: var(--navy);
-  background: var(--surface);
-  border: 2px solid var(--navy);
+  color: var(--red);
+  background: var(--red-soft);
+  border: 2px solid var(--red);
   border-radius: var(--radius-sm);
   font-weight: 600;
 }
@@ -554,10 +570,6 @@ dd {
 .estimate-notice strong {
   display: block;
   margin-block-end: var(--space-1);
-}
-
-.estimate-notice--result {
-  background: var(--white);
 }
 
 .result-actions {

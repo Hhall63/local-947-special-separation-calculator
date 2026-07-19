@@ -387,6 +387,10 @@ test("top and bottom Clear all fields controls share the complete reset", async 
     assert.equal(fixture.get("anticipated-salary-field").hidden, true);
     assert.equal(fixture.get("current-salary-field").hidden, true);
     assert.equal(fixture.get("rank-fields").hidden, true);
+    assert.equal(fixture.get("sick-hours-field").hidden, true);
+    assert.equal(fixture.get("service-preview").hidden, true);
+    assert.equal(fixture.get("benefit-service-details").hidden, true);
+    assert.equal(fixture.get("salary-preview").hidden, true);
     assert.equal(fixture.get("calculate-button").hidden, false);
     assert.equal(fixture.get("calculate-button").disabled, false);
     assert.equal(fixture.get("sick-hours-label").textContent, "Sick hours");
@@ -558,6 +562,39 @@ test("browser controller supports independent service and salary previews", asyn
       "Missing progressive preview hook: " + fragment,
     );
   }
+});
+
+test("progressively reveals dependent calculator inputs and summaries", async (t) => {
+  const fixture = await controllerFixture();
+  t.after(fixture.cleanup);
+
+  assert.equal(fixture.get("sick-hours-field").hidden, true);
+  assert.equal(fixture.get("service-preview").hidden, true);
+  assert.equal(fixture.get("benefit-service-details").hidden, true);
+  assert.equal(fixture.get("salary-preview").hidden, true);
+
+  fixture.setRadio("sick-mode", "current");
+  fixture.form.dispatch("change", fixture.get("sick-mode-group"));
+  assert.equal(fixture.get("sick-hours-field").hidden, false);
+  assert.equal(fixture.get("service-preview").hidden, true);
+
+  fixture.get("sick-hours").value = "160";
+  fixture.form.dispatch("input", fixture.get("sick-hours"));
+  assert.equal(fixture.get("service-preview").hidden, false);
+
+  fixture.setRadio("benefit-service-mode", "manual");
+  fixture.form.dispatch("change", fixture.get("benefit-service-mode-group"));
+  assert.equal(fixture.get("benefit-service-details").hidden, false);
+  assert.equal(fixture.get("manual-service-fields").hidden, false);
+
+  fixture.setRadio("salary-mode", "anticipated");
+  fixture.form.dispatch("change", fixture.get("salary-mode-group"));
+  assert.equal(fixture.get("salary-preview").hidden, true);
+
+  fixture.get("retirement-year").value = "2030";
+  fixture.get("anticipated-salary").value = "100000";
+  fixture.form.dispatch("input", fixture.get("anticipated-salary"));
+  assert.equal(fixture.get("salary-preview").hidden, false);
 });
 
 test("controller gates allowance inputs and renders eligibility evidence", async () => {
@@ -798,7 +835,7 @@ test("uses allowance copy, official guidance, and the approved result order", as
     "Estimated annual allowance",
     "Estimated total allowance",
     "Reloading this page clears your entries",
-    "official LGERS Member Handbook (opens in a new tab)",
+    "Member Handbook (opens in a new tab)",
     'id="benefit-service-section"',
     'id="salary-section"',
     'id="calculate-button"',
@@ -841,6 +878,50 @@ test("uses allowance copy, official guidance, and the approved result order", as
     (html.match(/Information provided by this calculator is an estimate only\./g) ?? [])
       .length,
     2,
+  );
+});
+
+test("uses approved progressive disclosure layout and copy", async () => {
+  const html = await readFile(new URL("index.html", rootUrl), "utf8");
+  const css = await readFile(new URL("styles.css", rootUrl), "utf8");
+  const normalizedHtml = html.replace(/\s+/g, " ");
+  const normalizeText = (value) =>
+    value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  const notices = [...html.matchAll(/<aside class="estimate-notice[^"]*">([\s\S]*?)<\/aside>/g)]
+    .map((match) => normalizeText(match[1]));
+
+  assert.deepEqual(notices, [
+    "Estimate only. Information provided by this calculator is an estimate only. It is not an official allowance determination.",
+    "Estimate only. Information provided by this calculator is an estimate only. It is not an official allowance determination.",
+  ]);
+  assert.match(
+    html,
+    /class="field field--compact"[\s\S]*?for="retirement-year"/,
+  );
+  for (const id of [
+    "service-preview",
+    "benefit-service-details",
+    "salary-preview",
+  ]) {
+    assert.match(
+      html,
+      new RegExp('id="' + id + '"[^>]*class="[^"]*calculation-panel'),
+    );
+  }
+  assert.ok(
+    normalizedHtml.includes(
+      "When current sick hours are selected, the calculator divides current sick hours by completed GFD and other LGERS service to estimate a yearly net rate, caps that rate at 96 hours per year, and applies it through retirement.",
+    ),
+  );
+  assert.match(css, /\.form-subheading\s*\{[^}]*text-align:\s*center;/s);
+  assert.match(css, /\.field--compact\s*\{[^}]*max-width:\s*18rem;/s);
+  assert.match(
+    css,
+    /\.calculation-panel\s*\{[^}]*background:\s*var\(--surface\);[^}]*border:\s*1px solid var\(--border\);/s,
+  );
+  assert.match(
+    css,
+    /\.estimate-notice\s*\{[^}]*color:\s*var\(--red\);[^}]*background:\s*var\(--red-soft\);[^}]*border:[^;]*var\(--red\);/s,
   );
 });
 

@@ -123,7 +123,7 @@
 
           <div class="form-group">
             <h3 class="form-subheading">Retirement date and age</h3>
-            <div class="field">
+            <div class="field field--compact">
             <label for="retirement-year">Estimated retirement year (4 digits)</label>
             <input
               id="retirement-year"
@@ -311,7 +311,7 @@
             </div>
           </fieldset>
 
-          <div class="field">
+          <div id="sick-hours-field" class="field" hidden>
             <label id="sick-hours-label" for="sick-hours">Sick hours</label>
             <input
               id="sick-hours"
@@ -323,7 +323,11 @@
             />
           </div>
 
-          <dl class="derived-values">
+          <dl
+            id="service-preview"
+            class="derived-values calculation-panel"
+            hidden
+          >
             <div>
               <dt>Projected sick hours</dt>
               <dd id="projected-sick-hours">-</dd>
@@ -390,6 +394,7 @@
             </div>
           </fieldset>
 
+          <div id="benefit-service-details" class="calculation-panel" hidden>
           <fieldset id="manual-service-fields" hidden>
             <legend>Creditable service used for the allowance</legend>
             <p class="hint">
@@ -428,6 +433,7 @@
               <dd id="benefit-service-value">-</dd>
             </div>
           </dl>
+          </div>
         </section>
 
         <section
@@ -520,7 +526,11 @@
             </div>
           </fieldset>
 
-          <dl class="derived-values">
+          <dl
+            id="salary-preview"
+            class="derived-values calculation-panel"
+            hidden
+          >
             <div>
               <dt>Projected retirement salary</dt>
               <dd id="projected-salary">-</dd>
@@ -589,15 +599,8 @@
 
         <aside class="estimate-notice estimate-notice--result">
           <strong>Estimate only.</strong>
-          Information provided by this calculator is an estimate only. Verify
-          your information and eligibility using the
-          <a
-            href="https://www.myncretirement.gov/systems-funds/local-governmental-employees-retirement-system-lgers/lgers-handbook"
-            target="_blank"
-            rel="noopener"
-          >official LGERS Member Handbook (opens in a new tab)</a>
-          and the appropriate retirement authority before making a retirement
-          decision.
+          Information provided by this calculator is an estimate only. It is not
+          an official allowance determination.
         </aside>
         <div class="result-actions">
           <button id="edit-answers" class="secondary-button" type="button">
@@ -614,6 +617,12 @@
         <ul>
           <li>Retirement occurs January 31.</li>
           <li>Sick leave accrues at no more than eight hours per month.</li>
+          <li>
+            When current sick hours are selected, the calculator divides current
+            sick hours by completed GFD and other LGERS service to estimate a
+            yearly net rate, caps that rate at 96 hours per year, and applies it
+            through retirement.
+          </li>
           <li>Salary raises are 4% on applicable July 1 dates.</li>
           <li>The allowance multiplier is 0.0085.</li>
           <li>Gross biweekly allowance uses 26 payments per year.</li>
