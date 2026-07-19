@@ -161,6 +161,17 @@ test("composite month values pass exact 25- and 30-year thresholds", () => {
   assert.equal(evaluateEligibility({ retirementAge: 59, eligibilityServiceYears: thirty }).unreduced, true);
 });
 
+test("composite month values pass the exact five-year threshold", () => {
+  const exactFive = 1 / 12 + (4 + 1 / 12) + 10 / 12;
+  const check = evaluateEligibility({
+    continuousGfd: true,
+    projectedGfdYears: exactFive,
+  }).checks.find((item) => item.key === "continuous-gfd");
+
+  assert.equal(exactFive, 4.999999999999999);
+  assert.equal(check.passed, true);
+});
+
 test("composite month values pass an exact 50 percent GFD share", () => {
   const projectedGfdYears = 12.5;
   const eligibilityServiceYears = projectedGfdYears + (10 + 7 / 12) + 23 / 12;
