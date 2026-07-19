@@ -6,8 +6,9 @@ const rootUrl = new URL("../", import.meta.url);
 
 let controllerFixtureId = 0;
 
-async function controllerFixture() {
+async function controllerFixture(options = {}) {
   let document;
+  const previousFetch = globalThis.fetch;
   const elements = new Map();
   const created = [];
   const controlTags = {
@@ -23,6 +24,9 @@ async function controllerFixture() {
     "benefit-months": "input",
     "anticipated-salary": "input",
     "current-rank": "select",
+    "employee-name-search": "input",
+    "search-current-records": "button",
+    "use-salary-record": "button",
     "current-step": "select",
     "current-exempt-salary": "input",
     "retirement-rank": "select",
@@ -126,6 +130,21 @@ async function controllerFixture() {
       return event;
     }
 
+    async dispatchAsync(type, target = this) {
+      const event = {
+        type,
+        target,
+        defaultPrevented: false,
+        preventDefault() {
+          this.defaultPrevented = true;
+        },
+      };
+      for (const listener of this.listeners.get(type) ?? []) {
+        await listener(event);
+      }
+      return event;
+    }
+
     focus() {
       document.activeElement = this;
     }
@@ -173,6 +192,15 @@ async function controllerFixture() {
     "anticipated",
     "structure",
   ]);
+  addRadioGroup("current-entry-mode", "current-entry-mode-group", [
+    "manual",
+    "lookup",
+  ]);
+  const manualEntry = radios.find(
+    (radio) => radio.name === "current-entry-mode" && radio.value === "manual",
+  );
+  manualEntry.checked = true;
+  manualEntry.defaultChecked = true;
 
   form.querySelector = (selector) => {
     const name = selector.match(/^input\[name="([^"]+)"\]:checked$/)?.[1];
@@ -212,6 +240,7 @@ async function controllerFixture() {
   get("merit-rate").defaultValue = "4";
 
   globalThis.document = document;
+  if (options.fetch) globalThis.fetch = options.fetch;
   controllerFixtureId += 1;
   await import(
     new URL("app.mjs?controller-fixture=" + controllerFixtureId, rootUrl)
@@ -248,6 +277,11 @@ async function controllerFixture() {
     setAllowanceInputs,
     cleanup() {
       delete globalThis.document;
+      if (previousFetch === undefined) {
+        delete globalThis.fetch;
+      } else {
+        globalThis.fetch = previousFetch;
+      }
     },
   };
 }
@@ -295,6 +329,9 @@ test("includes the accessible live salary lookup and local-search privacy copy",
     'id="salary-lookup-results"',
     'id="salary-lookup-confirmation"',
     'id="use-salary-record"',
+    "How this works:",
+    "public records database",
+    "does not send or save the name you type",
     'href="https://data.greensboro-nc.gov/datasets/greensboro::people-culture-current-employee-salaries/explore"',
   ]) {
     assert.ok(html.includes(fragment), "Missing salary lookup HTML: " + fragment);
@@ -697,6 +734,267 @@ test("reveals salary structure fields and renders step progression", async (t) =
     fixture.get("salary-maximum").textContent,
     "Reached November 1, 2026",
   );
+});
+
+test("fetches Fire records without the typed name and imports only after confirmation", async (t) => {
+  const requested = [];
+  const fixture = await controllerFixture({
+    fetch: async (url, options) => {
+      requested.push({ url: String(url), options });
+      return {
+        ok: true,
+        async json() {
+          return {
+            features: [
+              {
+                attributes: {
+                  Name: "Smith, Jordan A.",
+                  FirstName: "Jordan",
+                  LastName: "Smith",
+                  EmployeeTitle: "Fire Fighter",
+                  SalaryRate: 56_434,
+                },
+              },
+            ],
+            exceededTransferLimit: false,
+          };
+        },
+      };
+    },
+  });
+  t.after(fixture.cleanup);
+
+  fixture.setRadio("salary-mode", "structure");
+  fixture.setRadio("current-entry-mode", "lookup");
+  fixture.form.dispatch("change", fixture.get("current-entry-mode-group"));
+  assert.equal(fixture.get("salary-lookup-fields").hidden, false);
+  assert.equal(fixture.get("current-rank-field").hidden, true);
+  fixture.form.dispatch("submit");
+  assert.equal(
+    fixture.document.activeElement,
+    fixture.get("employee-name-search"),
+  );
+  assert.match(
+    fixture.get("salary-lookup-status").textContent,
+    /search.*confirm/i,
+  );
+
+  fixture.get("employee-name-search").value = "jor sm";
+  await fixture.get("search-current-records").dispatchAsync("click");
+
+  assert.equal(requested.length, 1);
+  assert.doesNotMatch(requested[0].url, /jor|smith/i);
+  assert.match(requested[0].url, /DepartmentName/);
+  assert.equal(requested[0].options.cache, "no-store");
+  assert.equal(fixture.get("current-rank").value, "");
+  assert.equal(fixture.get("salary-lookup-results").children.length, 1);
+  assert.equal(
+    fixture.document.activeElement,
+    fixture.get("salary-lookup-results-heading"),
+  );
+
+  fixture
+    .get("salary-lookup-results")
+    .children[0].children[0].dispatch("click");
+  assert.equal(fixture.get("current-rank").value, "");
+  assert.equal(
+    fixture.document.activeElement,
+    fixture.get("salary-lookup-confirmation-title"),
+  );
+
+  fixture.get("use-salary-record").dispatch("click");
+  assert.equal(fixture.get("current-rank").value, "f02");
+  assert.equal(fixture.get("current-step").value, "1");
+  assert.equal(fixture.get("current-rank-field").hidden, false);
+  assert.match(
+    fixture.get("salary-lookup-status").textContent,
+    /filled.*edit/i,
+  );
+});
+
+test("paginates the ArcGIS response and reuses the roster for later searches", async (t) => {
+  const pages = [
+    {
+      features: [
+        {
+          attributes: {
+            Name: "Able, Ava",
+            EmployeeTitle: "Fire Captain",
+            SalaryRate: 83_540,
+          },
+        },
+      ],
+      exceededTransferLimit: true,
+    },
+    {
+      features: [
+        {
+          attributes: {
+            Name: "Baker, Ava",
+            EmployeeTitle: "Fire Captain",
+            SalaryRate: 83_540,
+          },
+        },
+      ],
+      exceededTransferLimit: false,
+    },
+  ];
+  let requestCount = 0;
+  const fixture = await controllerFixture({
+    fetch: async () => ({
+      ok: true,
+      async json() {
+        return pages[requestCount++];
+      },
+    }),
+  });
+  t.after(fixture.cleanup);
+
+  fixture.get("employee-name-search").value = "able";
+  await fixture.get("search-current-records").dispatchAsync("click");
+  assert.equal(requestCount, 2);
+  assert.equal(fixture.get("salary-lookup-results").children.length, 1);
+
+  fixture.get("employee-name-search").value = "baker";
+  await fixture.get("search-current-records").dispatchAsync("click");
+  assert.equal(requestCount, 2);
+  assert.equal(fixture.get("salary-lookup-results").children.length, 1);
+
+  fixture.get("employee-name-search").value = "missing";
+  await fixture.get("search-current-records").dispatchAsync("click");
+  assert.equal(requestCount, 2);
+  assert.equal(fixture.get("salary-lookup-results").children.length, 0);
+  assert.match(fixture.get("salary-lookup-status").textContent, /no matching/i);
+});
+
+test("rejects ArcGIS errors and malformed pages without changing fields", async (t) => {
+  const payloads = [
+    { error: { message: "service error" } },
+    { features: [{ attributes: null }], exceededTransferLimit: false },
+  ];
+  let requestCount = 0;
+  const fixture = await controllerFixture({
+    fetch: async () => ({
+      ok: true,
+      async json() {
+        return payloads[requestCount++];
+      },
+    }),
+  });
+  t.after(fixture.cleanup);
+  fixture.get("employee-name-search").value = "smith";
+
+  await fixture.get("search-current-records").dispatchAsync("click");
+  assert.match(fixture.get("salary-lookup-status").textContent, /couldn't be loaded/i);
+  assert.equal(fixture.get("current-rank").value, "");
+  await fixture.get("search-current-records").dispatchAsync("click");
+  assert.match(fixture.get("salary-lookup-status").textContent, /couldn't be loaded/i);
+  assert.equal(fixture.get("current-rank").value, "");
+  assert.equal(requestCount, 2);
+});
+
+test("validates lookup text and leaves manual entry available after an unmappable retry", async (t) => {
+  let attempts = 0;
+  const fixture = await controllerFixture({
+    fetch: async () => {
+      attempts += 1;
+      if (attempts === 1) throw new Error("offline");
+      return {
+        ok: true,
+        async json() {
+          return {
+            features: [
+              {
+                attributes: {
+                  Name: "Outlier, Avery",
+                  EmployeeTitle: "Fire Fighter",
+                  SalaryRate: 76_906,
+                },
+              },
+            ],
+            exceededTransferLimit: false,
+          };
+        },
+      };
+    },
+  });
+  t.after(fixture.cleanup);
+
+  fixture.setRadio("salary-mode", "structure");
+  fixture.setRadio("current-entry-mode", "lookup");
+  fixture.form.dispatch("change", fixture.get("current-entry-mode-group"));
+
+  fixture.get("employee-name-search").value = "a";
+  await fixture.get("search-current-records").dispatchAsync("click");
+  assert.equal(attempts, 0);
+  assert.match(fixture.get("salary-lookup-status").textContent, /two letters/i);
+
+  fixture.get("employee-name-search").value = "outlier";
+  await fixture.get("search-current-records").dispatchAsync("click");
+  assert.equal(attempts, 1);
+  assert.match(fixture.get("salary-lookup-status").textContent, /couldn't be loaded/i);
+  assert.equal(fixture.get("current-rank").value, "");
+
+  await fixture.get("search-current-records").dispatchAsync("click");
+  assert.equal(attempts, 2);
+  fixture
+    .get("salary-lookup-results")
+    .children[0].children[0].dispatch("click");
+  assert.equal(fixture.get("use-salary-record").disabled, true);
+  assert.match(fixture.get("salary-lookup-status").textContent, /couldn't match/i);
+
+  fixture.setRadio("current-entry-mode", "manual");
+  fixture.form.dispatch("change", fixture.get("current-entry-mode-group"));
+  assert.equal(fixture.get("current-rank-field").hidden, false);
+});
+
+test("reset clears lookup identity while retaining the page-memory roster", async (t) => {
+  let requestCount = 0;
+  const fixture = await controllerFixture({
+    fetch: async () => {
+      requestCount += 1;
+      return {
+        ok: true,
+        async json() {
+          return {
+            features: [
+              {
+                attributes: {
+                  Name: "Smith, Jordan",
+                  EmployeeTitle: "Fire Fighter",
+                  SalaryRate: 56_434,
+                },
+              },
+            ],
+            exceededTransferLimit: false,
+          };
+        },
+      };
+    },
+  });
+  t.after(fixture.cleanup);
+
+  fixture.get("employee-name-search").value = "smith";
+  await fixture.get("search-current-records").dispatchAsync("click");
+  fixture
+    .get("salary-lookup-results")
+    .children[0].children[0].dispatch("click");
+  fixture.get("use-salary-record").dispatch("click");
+  fixture.get("clear-form-bottom").dispatch("click");
+
+  assert.equal(
+    fixture.form.querySelector('input[name="current-entry-mode"]:checked').value,
+    "manual",
+  );
+  assert.equal(fixture.get("employee-name-search").value, "");
+  assert.equal(fixture.get("salary-lookup-results").children.length, 0);
+  assert.equal(fixture.get("salary-lookup-confirmation").hidden, true);
+  assert.equal(fixture.get("salary-lookup-status").textContent, "");
+  assert.equal(fixture.get("current-rank").value, "");
+
+  fixture.get("employee-name-search").value = "smith";
+  await fixture.get("search-current-records").dispatchAsync("click");
+  assert.equal(requestCount, 1);
 });
 
 test("opens, closes, and resets the salary structure dialog", async (t) => {

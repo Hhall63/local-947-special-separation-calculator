@@ -5,8 +5,10 @@ import {
   calculateRetirementSalary,
   calculateService,
   evaluateEligibility,
+  findEmployeeSalaryRecords,
   formatServiceYears,
   isExemptRank,
+  mapEmployeeSalaryRecord,
   projectStructuredSalary,
   retirementDateForYear,
   toServiceYears,
@@ -18,6 +20,13 @@ const errorSummary = document.querySelector("#error-summary");
 const errorList = document.querySelector("#error-list");
 const result = document.querySelector("#result");
 const benefitResults = document.querySelector("#benefit-results");
+
+const SALARY_RECORDS_URL =
+  "https://gis.greensboro-nc.gov/arcgis/rest/services/OpenGateCity/OpenData_HRES_DS/MapServer/1/query";
+let salaryRecords = null;
+let selectedSalaryRecord = null;
+let selectedSalaryMapping = null;
+let salaryLookupConfirmed = false;
 
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -207,6 +216,15 @@ function updateConditionalFields(errors) {
   setHidden("anticipated-salary-field", salaryMode !== "anticipated");
   const structureMode = salaryMode === "structure";
   setHidden("salary-structure-fields", !structureMode);
+  const currentEntryMode = radioValue("current-entry-mode");
+  const currentInputsVisible =
+    structureMode &&
+    (currentEntryMode === "manual" || salaryLookupConfirmed);
+  setHidden(
+    "salary-lookup-fields",
+    !structureMode || currentEntryMode !== "lookup",
+  );
+  setHidden("current-rank-field", !currentInputsVisible);
   const currentRank = element("current-rank").value;
   const retirementRank = element("retirement-rank").value;
   const currentDetails = SALARY_STRUCTURE[currentRank];
@@ -214,28 +232,34 @@ function updateConditionalFields(errors) {
   populateStepChoices(currentRank);
   setHidden(
     "current-step-field",
-    !structureMode || currentDetails?.type !== "nonexempt",
+    !currentInputsVisible || currentDetails?.type !== "nonexempt",
   );
   setHidden(
     "current-exempt-salary-field",
-    !structureMode || currentDetails?.type !== "exempt",
+    !currentInputsVisible || currentDetails?.type !== "exempt",
   );
-  setHidden("retirement-rank-field", !structureMode || !currentDetails);
+  setHidden(
+    "retirement-rank-field",
+    !currentInputsVisible || !currentDetails,
+  );
   setHidden(
     "promotion-date-fields",
-    !structureMode ||
+    !currentInputsVisible ||
       !currentDetails ||
       !retirementDetails ||
       currentRank === retirementRank,
   );
   setHidden(
     "merit-rate-field",
-    !structureMode ||
+    !currentInputsVisible ||
       (!isExemptRank(currentRank) && !isExemptRank(retirementRank)),
   );
   setHidden(
     "salary-preview",
-    !errors || !salaryMode || hasAnyError(errors, salaryErrorKeys),
+    (structureMode && !currentInputsVisible) ||
+      !errors ||
+      !salaryMode ||
+      hasAnyError(errors, salaryErrorKeys),
   );
 
   const sickMode = radioValue("sick-mode");
@@ -292,6 +316,118 @@ function populateChoices() {
     option.textContent = label;
     promotionMonth.append(option);
   });
+}
+
+async function fetchSalaryRecords() {
+  const records = [];
+  let offset = 0;
+  let more = true;
+
+  while (more) {
+    const params = new URLSearchParams({
+      where: "DepartmentName = 'Fire'",
+      outFields:
+        "Name,FirstName,MiddleInitial,LastName,NameSuffix,EmployeeTitle,SalaryRate",
+      returnGeometry: "false",
+      orderByFields: "ES_ID",
+      resultOffset: String(offset),
+      resultRecordCount: "1000",
+      f: "json",
+    });
+    const response = await fetch(SALARY_RECORDS_URL + "?" + params, {
+      cache: "no-store",
+    });
+    if (!response.ok) throw new Error("salary service HTTP error");
+
+    const payload = await response.json();
+    if (payload.error || !Array.isArray(payload.features)) {
+      throw new Error("salary service response error");
+    }
+    const page = payload.features.map((feature) => feature?.attributes);
+    if (
+      page.some(
+        (record) =>
+          !record ||
+          typeof record.Name !== "string" ||
+          typeof record.EmployeeTitle !== "string" ||
+          !Number.isFinite(Number(record.SalaryRate)),
+      )
+    ) {
+      throw new Error("salary service record error");
+    }
+    if (payload.exceededTransferLimit && page.length === 0) {
+      throw new Error("salary service pagination error");
+    }
+
+    records.push(...page);
+    offset += page.length;
+    more = payload.exceededTransferLimit === true;
+  }
+
+  return records;
+}
+
+function clearSalaryLookupResults() {
+  element("salary-lookup-results").replaceChildren();
+  setHidden("salary-lookup-results-region", true);
+  setHidden("salary-lookup-confirmation", true);
+  selectedSalaryRecord = null;
+  selectedSalaryMapping = null;
+}
+
+function showSalaryRecord(record) {
+  selectedSalaryRecord = record;
+  selectedSalaryMapping = mapEmployeeSalaryRecord(record);
+  element("salary-lookup-confirmation-copy").textContent =
+    record.Name +
+    " — " +
+    record.EmployeeTitle +
+    ", " +
+    currency.format(record.SalaryRate) +
+    " annually.";
+  element("use-salary-record").disabled = !selectedSalaryMapping;
+  setHidden("salary-lookup-confirmation", false);
+  element("salary-lookup-status").textContent = selectedSalaryMapping
+    ? "Review this public record, then confirm before filling your fields."
+    : "We found your record but couldn't match it confidently. Enter your rank and salary yourself.";
+  element("salary-lookup-confirmation-title").focus();
+}
+
+function renderSalaryLookupResults({ matches, total }) {
+  clearSalaryLookupResults();
+  if (total === 0) {
+    element("salary-lookup-status").textContent =
+      "No matching Fire salary records were found. Try more or different letters, or enter your information yourself.";
+    return;
+  }
+
+  const list = element("salary-lookup-results");
+  for (const record of matches) {
+    const item = document.createElement("li");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "secondary-button salary-lookup-result";
+    button.textContent =
+      record.Name +
+      " — " +
+      record.EmployeeTitle +
+      ", " +
+      currency.format(record.SalaryRate);
+    button.addEventListener("click", () => showSalaryRecord(record));
+    item.append(button);
+    list.append(item);
+  }
+
+  setHidden("salary-lookup-results-region", false);
+  element("salary-lookup-status").textContent =
+    total > matches.length
+      ? "Showing " +
+        matches.length +
+        " of " +
+        total +
+        " matches. Enter more of your name to narrow the list."
+      : total + " matching record" + (total === 1 ? "" : "s") + " found.";
+  element("salary-lookup-results-heading").focus();
 }
 
 function appendTableCell(row, tag, text, scope) {
@@ -676,11 +812,67 @@ function renderResult(estimate, { automatic = false, focus = true } = {}) {
   if (focus) element("result-title").focus();
 }
 
+element("search-current-records").addEventListener("click", async () => {
+  const query = element("employee-name-search").value;
+  if (query.replace(/[^a-z0-9]/gi, "").length < 2) {
+    clearSalaryLookupResults();
+    element("salary-lookup-status").textContent =
+      "Enter at least two letters of your name.";
+    element("employee-name-search").focus();
+    return;
+  }
+
+  clearSalaryLookupResults();
+  element("salary-lookup-status").textContent =
+    "Loading current City records…";
+  element("search-current-records").disabled = true;
+  try {
+    salaryRecords ??= await fetchSalaryRecords();
+    renderSalaryLookupResults(
+      findEmployeeSalaryRecords(salaryRecords, query),
+    );
+  } catch {
+    salaryRecords = null;
+    clearSalaryLookupResults();
+    element("salary-lookup-status").textContent =
+      "Current City records couldn't be loaded. Try again or enter your rank and salary yourself.";
+  } finally {
+    element("search-current-records").disabled = false;
+  }
+});
+
+element("use-salary-record").addEventListener("click", () => {
+  if (!selectedSalaryRecord || !selectedSalaryMapping) return;
+
+  salaryLookupConfirmed = true;
+  element("current-rank").value = selectedSalaryMapping.currentRank;
+  populateStepChoices(selectedSalaryMapping.currentRank);
+  element("current-step").value = selectedSalaryMapping.currentStep
+    ? String(selectedSalaryMapping.currentStep)
+    : "";
+  element("current-exempt-salary").value =
+    selectedSalaryMapping.currentSalary ?? "";
+  renderPreview(true);
+  element("salary-lookup-status").textContent =
+    "Current rank and salary filled. Review or edit them before calculating.";
+  element("current-rank").focus();
+});
+
 form.addEventListener("input", () => renderPreview(false));
 form.addEventListener("change", () => renderPreview(true));
 form.addEventListener("submit", (event) => {
   event.preventDefault();
   if (element("calculate-button").disabled) return;
+  if (
+    radioValue("salary-mode") === "structure" &&
+    radioValue("current-entry-mode") === "lookup" &&
+    !salaryLookupConfirmed
+  ) {
+    element("salary-lookup-status").textContent =
+      "Search for your record and confirm it, or enter your rank and salary yourself.";
+    element("employee-name-search").focus();
+    return;
+  }
 
   const input = collectInput();
   const errors = validateInput(input);
@@ -706,6 +898,14 @@ element("edit-answers").addEventListener("click", () => {
 
 function resetCalculator() {
   form.reset();
+  salaryLookupConfirmed = false;
+  selectedSalaryRecord = null;
+  selectedSalaryMapping = null;
+  element("salary-lookup-results").replaceChildren();
+  element("salary-lookup-status").textContent = "";
+  element("use-salary-record").disabled = false;
+  setHidden("salary-lookup-results-region", true);
+  setHidden("salary-lookup-confirmation", true);
   if (element("salary-structure-dialog").open) {
     element("salary-structure-dialog").close();
   }

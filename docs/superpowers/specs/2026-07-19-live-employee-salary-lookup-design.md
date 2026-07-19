@@ -47,6 +47,7 @@ Manual entry is selected by default and presents the existing current-rank and c
 Choosing the lookup method reveals:
 
 - a name input;
+- a concise plain-language explanation that the name, job title, and salary come from the City of Greensboro's public records database, that matching happens in the browser, and that the typed name is neither sent nor saved;
 - a **Search current records** button;
 - a live status region for loading and search messages;
 - an accessible list of matching records; and
