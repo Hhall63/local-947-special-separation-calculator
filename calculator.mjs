@@ -126,12 +126,16 @@ export function evaluateEligibility({
     hasProjectedGfd && hasEligibilityService && eligibilityServiceYears > 0
       ? projectedGfdYears / eligibilityServiceYears
       : null;
+  const gfdSharePassed =
+    hasProjectedGfd && hasEligibilityService && eligibilityServiceYears > 0
+      ? isAtLeast(projectedGfdYears * 2, eligibilityServiceYears)
+      : null;
   const unreduced =
     !hasEligibilityService
       ? null
-      : eligibilityServiceYears >= 30
+      : isAtLeast(eligibilityServiceYears, 30)
         ? true
-        : eligibilityServiceYears < 25
+        : !isAtLeast(eligibilityServiceYears, 25)
           ? false
           : hasAge
             ? retirementAge >= 60
@@ -140,7 +144,7 @@ export function evaluateEligibility({
     continuousGfd === false
       ? false
       : continuousGfd === true && hasProjectedGfd
-        ? projectedGfdYears >= 5
+        ? isAtLeast(projectedGfdYears, 5)
         : null;
 
   const checks = [
@@ -186,11 +190,11 @@ export function evaluateEligibility({
     {
       key: "gfd-share",
       label: "Sworn GFD share of total creditable service",
-      passed: gfdShare === null ? null : gfdShare >= 0.5,
+      passed: gfdSharePassed,
       actual:
         gfdShare === null
           ? null
-          : (gfdShare < 0.5
+          : (gfdSharePassed === false
               ? Math.floor(gfdShare * 1000) / 10
               : gfdShare * 100
             ).toFixed(1) + "%",

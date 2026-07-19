@@ -152,6 +152,67 @@ test("qualifies at exactly age 60 with 25 years", () => {
   assert.equal(result.gfdShare, 0.5);
 });
 
+test("composite month values pass exact 25- and 30-year thresholds", () => {
+  const twentyFive = 12.5 + (10 + 8 / 12) + 22 / 12;
+  const thirty = 17.5 + (10 + 8 / 12) + 22 / 12;
+
+  assert.equal(twentyFive, 24.999999999999996);
+  assert.equal(evaluateEligibility({ retirementAge: 60, eligibilityServiceYears: twentyFive }).unreduced, true);
+  assert.equal(evaluateEligibility({ retirementAge: 59, eligibilityServiceYears: thirty }).unreduced, true);
+});
+
+test("composite month values pass an exact 50 percent GFD share", () => {
+  const projectedGfdYears = 12.5;
+  const eligibilityServiceYears = projectedGfdYears + (10 + 7 / 12) + 23 / 12;
+  const result = evaluateEligibility({ projectedGfdYears, eligibilityServiceYears });
+  const share = result.checks.find((check) => check.key === "gfd-share");
+
+  assert.equal(result.gfdShare, 0.49999999999999994);
+  assert.equal(share.passed, true);
+  assert.equal(share.actual, "50.0%");
+});
+
+test("service and share tolerance does not admit a full-month miss", () => {
+  for (const [years, expected] of [
+    [4 + 11 / 12, false],
+    [5, true],
+    [5 + 1 / 12, true],
+  ]) {
+    const check = evaluateEligibility({
+      continuousGfd: true,
+      projectedGfdYears: years,
+    }).checks.find((item) => item.key === "continuous-gfd");
+    assert.equal(check.passed, expected, `${years} projected GFD years`);
+  }
+
+  for (const [age, years, expected] of [
+    [60, 24 + 11 / 12, false],
+    [60, 25, true],
+    [60, 25 + 1 / 12, true],
+    [59, 29 + 11 / 12, false],
+    [59, 30, true],
+    [59, 30 + 1 / 12, true],
+  ]) {
+    assert.equal(
+      evaluateEligibility({ retirementAge: age, eligibilityServiceYears: years }).unreduced,
+      expected,
+      `${years} years at age ${age}`,
+    );
+  }
+
+  for (const [gfdYears, expected] of [
+    [12.5 - 1 / 12, false],
+    [12.5, true],
+    [12.5 + 1 / 12, true],
+  ]) {
+    const check = evaluateEligibility({
+      projectedGfdYears: gfdYears,
+      eligibilityServiceYears: 25,
+    }).checks.find((item) => item.key === "gfd-share");
+    assert.equal(check.passed, expected, `${gfdYears} of 25 years`);
+  }
+});
+
 test("fails when GFD service is below 50 percent", () => {
   const result = evaluateEligibility({
     retirementAge: 60,
