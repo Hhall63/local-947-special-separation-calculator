@@ -26,7 +26,6 @@ async function controllerFixture(options = {}) {
     "current-rank": "select",
     "employee-name-search": "input",
     "search-current-records": "button",
-    "use-salary-record": "button",
     "current-step": "select",
     "current-exempt-salary": "input",
     "retirement-rank": "select",
@@ -328,8 +327,6 @@ test("includes the accessible live salary lookup and local-search privacy copy",
     'id="search-current-records"',
     'id="salary-lookup-status"',
     'id="salary-lookup-results"',
-    'id="salary-lookup-confirmation"',
-    'id="use-salary-record"',
     "How this works:",
     "public records database",
     "does not send or save the name you type",
@@ -337,6 +334,8 @@ test("includes the accessible live salary lookup and local-search privacy copy",
   ]) {
     assert.ok(html.includes(fragment), "Missing salary lookup HTML: " + fragment);
   }
+  assert.doesNotMatch(html, /id="salary-lookup-confirmation"/);
+  assert.doesNotMatch(html, /id="use-salary-record"/);
   assert.match(
     html,
     /name="current-entry-mode"[\s\S]*?value="manual"[\s\S]*?checked/,
@@ -761,7 +760,7 @@ test("reveals salary structure fields and renders step progression", async (t) =
   );
 });
 
-test("fetches Fire records without the typed name and imports only after confirmation", async (t) => {
+test("fetches Fire records without the typed name and imports the selected match", async (t) => {
   const requested = [];
   const fixture = await controllerFixture({
     fetch: async (url, options) => {
@@ -801,8 +800,9 @@ test("fetches Fire records without the typed name and imports only after confirm
   );
   assert.match(
     fixture.get("salary-lookup-status").textContent,
-    /search.*confirm/i,
+    /search.*record.*enter/i,
   );
+  const guardedSubmitStatus = fixture.get("salary-lookup-status").textContent;
 
   fixture.get("employee-name-search").value = "jor sm";
   await fixture.get("search-current-records").dispatchAsync("click");
@@ -825,20 +825,15 @@ test("fetches Fire records without the typed name and imports only after confirm
   resultButton.dispatch("click");
   assert.equal(resultButton.getAttribute("aria-pressed"), "true");
   assert.match(resultButton.textContent, /selected/i);
-  assert.equal(fixture.get("current-rank").value, "");
-  assert.equal(
-    fixture.document.activeElement,
-    fixture.get("salary-lookup-confirmation-title"),
-  );
-
-  fixture.get("use-salary-record").dispatch("click");
   assert.equal(fixture.get("current-rank").value, "f02");
   assert.equal(fixture.get("current-step").value, "1");
   assert.equal(fixture.get("current-rank-field").hidden, false);
+  assert.equal(fixture.get("current-step-field").hidden, false);
   assert.match(
     fixture.get("salary-lookup-status").textContent,
     /filled.*edit/i,
   );
+  assert.doesNotMatch(guardedSubmitStatus, /confirm/i);
 });
 
 test("paginates the ArcGIS response and reuses the roster for later searches", async (t) => {
@@ -1042,7 +1037,7 @@ test("validates lookup text and leaves manual entry available after an unmappabl
   fixture
     .get("salary-lookup-results")
     .children[0].children[0].dispatch("click");
-  assert.equal(fixture.get("use-salary-record").disabled, true);
+  assert.equal(fixture.get("current-rank").value, "");
   assert.match(fixture.get("salary-lookup-status").textContent, /couldn't match/i);
 
   fixture.setRadio("current-entry-mode", "manual");
@@ -1081,7 +1076,6 @@ test("reset clears lookup identity while retaining the page-memory roster", asyn
   fixture
     .get("salary-lookup-results")
     .children[0].children[0].dispatch("click");
-  fixture.get("use-salary-record").dispatch("click");
   fixture.get("clear-form-bottom").dispatch("click");
 
   assert.equal(
@@ -1090,7 +1084,6 @@ test("reset clears lookup identity while retaining the page-memory roster", asyn
   );
   assert.equal(fixture.get("employee-name-search").value, "");
   assert.equal(fixture.get("salary-lookup-results").children.length, 0);
-  assert.equal(fixture.get("salary-lookup-confirmation").hidden, true);
   assert.equal(fixture.get("salary-lookup-status").textContent, "");
   assert.equal(fixture.get("current-rank").value, "");
 

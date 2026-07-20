@@ -24,8 +24,6 @@ const benefitResults = document.querySelector("#benefit-results");
 const SALARY_RECORDS_URL =
   "https://gis.greensboro-nc.gov/arcgis/rest/services/OpenGateCity/OpenData_HRES_DS/MapServer/1/query";
 let salaryRecords = null;
-let selectedSalaryRecord = null;
-let selectedSalaryMapping = null;
 let salaryLookupConfirmed = false;
 let salaryLookupRequestId = 0;
 
@@ -384,14 +382,9 @@ async function fetchSalaryRecords() {
 function clearSalaryLookupResults() {
   element("salary-lookup-results").replaceChildren();
   setHidden("salary-lookup-results-region", true);
-  setHidden("salary-lookup-confirmation", true);
-  selectedSalaryRecord = null;
-  selectedSalaryMapping = null;
 }
 
 function showSalaryRecord(record, selectedButton) {
-  selectedSalaryRecord = record;
-  selectedSalaryMapping = mapEmployeeSalaryRecord(record);
   for (const item of element("salary-lookup-results").children) {
     const button = item.querySelector("button");
     if (!button) continue;
@@ -400,19 +393,25 @@ function showSalaryRecord(record, selectedButton) {
     button.textContent =
       button.dataset.label + (selected ? " — Selected" : "");
   }
-  element("salary-lookup-confirmation-copy").textContent =
-    record.Name +
-    " — " +
-    record.EmployeeTitle +
-    ", " +
-    currency.format(record.SalaryRate) +
-    " annually.";
-  element("use-salary-record").disabled = !selectedSalaryMapping;
-  setHidden("salary-lookup-confirmation", false);
-  element("salary-lookup-status").textContent = selectedSalaryMapping
-    ? "Review this public record, then confirm before filling your fields."
-    : "We found your record but couldn't match it confidently. Enter your rank and salary yourself.";
-  element("salary-lookup-confirmation-title").focus();
+
+  const mapping = mapEmployeeSalaryRecord(record);
+  if (!mapping) {
+    element("salary-lookup-status").textContent =
+      "We found your record but couldn't match it confidently. Enter your rank and salary yourself.";
+    return;
+  }
+
+  salaryLookupConfirmed = true;
+  element("current-rank").value = mapping.currentRank;
+  populateStepChoices(mapping.currentRank);
+  element("current-step").value = mapping.currentStep
+    ? String(mapping.currentStep)
+    : "";
+  element("current-exempt-salary").value = mapping.currentSalary ?? "";
+  renderPreview(true);
+  element("salary-lookup-status").textContent =
+    "Current rank and salary filled. Review or edit them before calculating.";
+  element("current-rank").focus();
 }
 
 function renderSalaryLookupResults({ matches, total }) {
@@ -875,23 +874,6 @@ element("employee-name-search").addEventListener(
   updateSalarySearchButton,
 );
 
-element("use-salary-record").addEventListener("click", () => {
-  if (!selectedSalaryRecord || !selectedSalaryMapping) return;
-
-  salaryLookupConfirmed = true;
-  element("current-rank").value = selectedSalaryMapping.currentRank;
-  populateStepChoices(selectedSalaryMapping.currentRank);
-  element("current-step").value = selectedSalaryMapping.currentStep
-    ? String(selectedSalaryMapping.currentStep)
-    : "";
-  element("current-exempt-salary").value =
-    selectedSalaryMapping.currentSalary ?? "";
-  renderPreview(true);
-  element("salary-lookup-status").textContent =
-    "Current rank and salary filled. Review or edit them before calculating.";
-  element("current-rank").focus();
-});
-
 form.addEventListener("input", () => renderPreview(false));
 form.addEventListener("change", () => renderPreview(true));
 form.addEventListener("submit", (event) => {
@@ -903,7 +885,7 @@ form.addEventListener("submit", (event) => {
     !salaryLookupConfirmed
   ) {
     element("salary-lookup-status").textContent =
-      "Search for your record and confirm it, or enter your rank and salary yourself.";
+      "Search for your record, or enter your rank and salary yourself.";
     element("employee-name-search").focus();
     return;
   }
@@ -934,15 +916,11 @@ function resetCalculator() {
   salaryLookupRequestId += 1;
   form.reset();
   salaryLookupConfirmed = false;
-  selectedSalaryRecord = null;
-  selectedSalaryMapping = null;
   element("salary-lookup-results").replaceChildren();
   element("salary-lookup-status").textContent = "";
   element("search-current-records").disabled = false;
   updateSalarySearchButton();
-  element("use-salary-record").disabled = false;
   setHidden("salary-lookup-results-region", true);
-  setHidden("salary-lookup-confirmation", true);
   if (element("salary-structure-dialog").open) {
     element("salary-structure-dialog").close();
   }

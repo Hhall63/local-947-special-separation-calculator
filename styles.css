@@ -416,12 +416,6 @@ select:hover {
   border-color: var(--search-ready-hover);
 }
 
-.salary-lookup-confirmation {
-  margin-block-start: var(--space-3);
-  padding-block-start: var(--space-3);
-  border-block-start: 1px solid var(--border);
-}
-
 .salary-dialog {
   width: min(72rem, calc(100% - 2rem));
   max-height: calc(100dvh - 2rem);
