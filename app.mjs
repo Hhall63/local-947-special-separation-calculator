@@ -875,7 +875,20 @@ element("employee-name-search").addEventListener(
 );
 
 form.addEventListener("input", () => renderPreview(false));
-form.addEventListener("change", () => renderPreview(true));
+form.addEventListener("change", (event) => {
+  if (
+    event.target.name === "salary-mode" &&
+    event.target.value === "structure" &&
+    event.target.checked
+  ) {
+    for (const input of element("current-entry-mode-group").querySelectorAll(
+      "input",
+    )) {
+      input.checked = input.value === "lookup";
+    }
+  }
+  renderPreview(true);
+});
 form.addEventListener("submit", (event) => {
   event.preventDefault();
   if (element("calculate-button").disabled) return;

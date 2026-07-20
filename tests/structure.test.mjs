@@ -195,11 +195,11 @@ async function controllerFixture(options = {}) {
     "manual",
     "lookup",
   ]);
-  const manualEntry = radios.find(
-    (radio) => radio.name === "current-entry-mode" && radio.value === "manual",
+  const lookupEntry = radios.find(
+    (radio) => radio.name === "current-entry-mode" && radio.value === "lookup",
   );
-  manualEntry.checked = true;
-  manualEntry.defaultChecked = true;
+  lookupEntry.checked = true;
+  lookupEntry.defaultChecked = true;
 
   form.querySelector = (selector) => {
     const name = selector.match(/^input\[name="([^"]+)"\]:checked$/)?.[1];
@@ -271,6 +271,8 @@ async function controllerFixture(options = {}) {
     document,
     form,
     get,
+    getRadio: (name, value) =>
+      radios.find((radio) => radio.name === name && radio.value === value),
     setRadio,
     setEligibilityInputs,
     setAllowanceInputs,
@@ -320,8 +322,8 @@ test("includes the accessible live salary lookup and local-search privacy copy",
     'value="manual"',
     "Enter my rank and salary myself",
     'value="lookup"',
-    "Find me in current City records",
-    "Use my salary now",
+    "Look up my information",
+    "Predict from my current salary",
     'id="salary-lookup-fields"',
     'id="employee-name-search"',
     'id="search-current-records"',
@@ -338,7 +340,11 @@ test("includes the accessible live salary lookup and local-search privacy copy",
   assert.doesNotMatch(html, /id="use-salary-record"/);
   assert.match(
     html,
-    /name="current-entry-mode"[\s\S]*?value="manual"[\s\S]*?checked/,
+    /name="current-entry-mode"[\s\S]*?value="lookup"[\s\S]*?checked/,
+  );
+  assert.doesNotMatch(
+    html,
+    /Use my salary now|Find me in current City records/,
   );
   assert.match(
     html,
@@ -737,6 +743,8 @@ test("reveals salary structure fields and renders step progression", async (t) =
   fixture.setRadio("salary-mode", "structure");
   fixture.form.dispatch("change", fixture.get("salary-mode-group"));
   assert.equal(fixture.get("salary-structure-fields").hidden, false);
+  fixture.setRadio("current-entry-mode", "manual");
+  fixture.form.dispatch("change", fixture.get("current-entry-mode-group"));
 
   fixture.get("current-rank").value = "f02";
   fixture.form.dispatch("change", fixture.get("current-rank"));
@@ -758,6 +766,34 @@ test("reveals salary structure fields and renders step progression", async (t) =
     fixture.get("salary-maximum").textContent,
     "Reached November 1, 2026",
   );
+});
+
+test("defaults to lookup each time current salary prediction is selected", async (t) => {
+  const fixture = await controllerFixture();
+  t.after(fixture.cleanup);
+  const anticipated = fixture.getRadio("salary-mode", "anticipated");
+  const structure = fixture.getRadio("salary-mode", "structure");
+  const manual = fixture.getRadio("current-entry-mode", "manual");
+  const lookup = fixture.getRadio("current-entry-mode", "lookup");
+
+  fixture.setRadio("current-entry-mode", "manual");
+  fixture.setRadio("salary-mode", "structure");
+  fixture.form.dispatch("change", structure);
+  assert.equal(lookup.checked, true);
+  assert.equal(manual.checked, false);
+  assert.equal(fixture.get("salary-lookup-fields").hidden, false);
+
+  fixture.setRadio("current-entry-mode", "manual");
+  fixture.form.dispatch("change", manual);
+  assert.equal(manual.checked, true);
+  assert.equal(lookup.checked, false);
+
+  fixture.setRadio("salary-mode", "anticipated");
+  fixture.form.dispatch("change", anticipated);
+  fixture.setRadio("salary-mode", "structure");
+  fixture.form.dispatch("change", structure);
+  assert.equal(lookup.checked, true);
+  assert.equal(manual.checked, false);
 });
 
 test("fetches Fire records without the typed name and imports the selected match", async (t) => {
@@ -1080,7 +1116,7 @@ test("reset clears lookup identity while retaining the page-memory roster", asyn
 
   assert.equal(
     fixture.form.querySelector('input[name="current-entry-mode"]:checked').value,
-    "manual",
+    "lookup",
   );
   assert.equal(fixture.get("employee-name-search").value, "");
   assert.equal(fixture.get("salary-lookup-results").children.length, 0);
