@@ -124,6 +124,16 @@ function element(id) {
   return document.getElementById(id);
 }
 
+function hasSearchableEmployeeName(value) {
+  return value.replace(/[^a-z0-9]/gi, "").length >= 2;
+}
+
+function updateSalarySearchButton() {
+  element("search-current-records").dataset.searchReady = String(
+    hasSearchableEmployeeName(element("employee-name-search").value),
+  );
+}
+
 function radioValue(name) {
   return form.querySelector('input[name="' + name + '"]:checked')?.value;
 }
@@ -828,7 +838,7 @@ function renderResult(estimate, { automatic = false, focus = true } = {}) {
 
 element("search-current-records").addEventListener("click", async () => {
   const query = element("employee-name-search").value;
-  if (query.replace(/[^a-z0-9]/gi, "").length < 2) {
+  if (!hasSearchableEmployeeName(query)) {
     clearSalaryLookupResults();
     element("salary-lookup-status").textContent =
       "Enter at least two letters of your name.";
@@ -859,6 +869,11 @@ element("search-current-records").addEventListener("click", async () => {
     }
   }
 });
+
+element("employee-name-search").addEventListener(
+  "input",
+  updateSalarySearchButton,
+);
 
 element("use-salary-record").addEventListener("click", () => {
   if (!selectedSalaryRecord || !selectedSalaryMapping) return;
@@ -924,6 +939,7 @@ function resetCalculator() {
   element("salary-lookup-results").replaceChildren();
   element("salary-lookup-status").textContent = "";
   element("search-current-records").disabled = false;
+  updateSalarySearchButton();
   element("use-salary-record").disabled = false;
   setHidden("salary-lookup-results-region", true);
   setHidden("salary-lookup-confirmation", true);
@@ -965,3 +981,4 @@ salaryStructureDialog.addEventListener("close", () => {
 populateChoices();
 populateSalaryStructureDialog();
 updateConditionalFields();
+updateSalarySearchButton();

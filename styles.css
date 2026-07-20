@@ -2,6 +2,8 @@
   --gold: oklch(0.82 0.16 78);
   --navy: oklch(0.22 0.05 275);
   --navy-hover: oklch(0.28 0.06 275);
+  --search-ready: oklch(0.42 0.1 150);
+  --search-ready-hover: oklch(0.35 0.08 150);
   --red: oklch(0.43 0.18 25);
   --red-soft: oklch(0.96 0.025 25);
   --white: oklch(1 0 0);
@@ -401,6 +403,17 @@ select:hover {
 .salary-lookup-result {
   width: 100%;
   text-align: start;
+}
+
+#search-current-records[data-search-ready="true"] {
+  color: var(--white);
+  background: var(--search-ready);
+  border-color: var(--search-ready);
+}
+
+#search-current-records[data-search-ready="true"]:hover {
+  background: var(--search-ready-hover);
+  border-color: var(--search-ready-hover);
 }
 
 .salary-lookup-confirmation {

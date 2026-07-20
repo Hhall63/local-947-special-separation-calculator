@@ -322,6 +322,7 @@ test("includes the accessible live salary lookup and local-search privacy copy",
     "Enter my rank and salary myself",
     'value="lookup"',
     "Find me in current City records",
+    "Use my salary now",
     'id="salary-lookup-fields"',
     'id="employee-name-search"',
     'id="search-current-records"',
@@ -346,6 +347,10 @@ test("includes the accessible live salary lookup and local-search privacy copy",
   );
   assert.match(css, /\.salary-lookup\s*\{/);
   assert.match(css, /\.salary-lookup-result\s*\{/);
+  assert.match(
+    css,
+    /#search-current-records\[data-search-ready="true"\]\s*\{/,
+  );
   for (const fragment of [
     "No entered data is stored or transmitted",
     "retrieves public Fire salary records",
@@ -356,6 +361,26 @@ test("includes the accessible live salary lookup and local-search privacy copy",
       "Missing privacy detail: " + fragment,
     );
   }
+});
+
+test("marks the salary search action ready only for searchable names", async (t) => {
+  const fixture = await controllerFixture();
+  t.after(fixture.cleanup);
+  const nameSearch = fixture.get("employee-name-search");
+  const searchButton = fixture.get("search-current-records");
+
+  assert.equal(searchButton.dataset.searchReady, "false");
+
+  nameSearch.value = "a-";
+  nameSearch.dispatch("input");
+  assert.equal(searchButton.dataset.searchReady, "false");
+
+  nameSearch.value = "a-b";
+  nameSearch.dispatch("input");
+  assert.equal(searchButton.dataset.searchReady, "true");
+
+  fixture.get("clear-form-bottom").dispatch("click");
+  assert.equal(searchButton.dataset.searchReady, "false");
 });
 
 test("top and bottom Clear all fields controls share the complete reset", async (t) => {
