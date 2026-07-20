@@ -33,4 +33,3 @@ Clicking an unmappable record changes no calculator field and shows the existing
 - Test that no confirmation markup or confirmation action remains.
 - Test that an unmappable record still leaves calculator fields unchanged.
 - Run the complete Node test suite and JavaScript syntax checks before publication.
-
