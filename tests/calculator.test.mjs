@@ -726,7 +726,21 @@ test("calculates annual, biweekly, and monthly-prorated totals", () => {
   );
 });
 
-test("preserves full precision for fractional allowance inputs", () => {
+test("uses displayed completed service months for allowance payments", () => {
+  const benefitServiceYears = 31.52982;
+  const result = calculateBenefit({
+    benefitServiceYears,
+    retirementSalary: 123_751,
+    coveredMonths: 36,
+  });
+
+  assert.equal(formatServiceYears(benefitServiceYears), "31 years, 6 months");
+  assert.equal(Number(result.annual.toFixed(2)), 33_134.33);
+  assert.equal(Number(result.biweekly.toFixed(2)), 1_274.4);
+  assert.equal(Number(result.total.toFixed(2)), 99_402.99);
+});
+
+test("preserves payment precision for completed service months", () => {
   for (const coveredMonths of [1, 13, 24]) {
     const result = calculateBenefit({
       benefitServiceYears: 25 + 7 / 12,

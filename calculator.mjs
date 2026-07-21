@@ -143,11 +143,13 @@ export function ageAtRetirement({
   return retirementYear - birthYear - (birthMonth > 1 ? 1 : 0);
 }
 
-export function formatServiceYears(years) {
+function completedServiceMonths(years) {
   const months = years * 12;
-  const totalMonths = Math.floor(
-    months + Number.EPSILON * Math.abs(months),
-  );
+  return Math.floor(months + Number.EPSILON * Math.abs(months));
+}
+
+export function formatServiceYears(years) {
+  const totalMonths = completedServiceMonths(years);
   const wholeYears = Math.floor(totalMonths / 12);
   const monthsOnly = totalMonths % 12;
   return wholeYears + " years, " + monthsOnly + " months";
@@ -570,8 +572,9 @@ export function calculateBenefit({
   retirementSalary,
   coveredMonths,
 }) {
+  const completedServiceYears = completedServiceMonths(benefitServiceYears) / 12;
   const annual =
-    BENEFIT_MULTIPLIER * benefitServiceYears * retirementSalary;
+    BENEFIT_MULTIPLIER * completedServiceYears * retirementSalary;
 
   return {
     annual,
